@@ -8,11 +8,11 @@ type Car struct {
 	CarID               int   `json:"car_id"`
 	CoordX              int   `json:"coord_x"`
 	CoordY              int   `json:"coord_y"`
-	BatteryLevel        int   `json:"battery_level"`      // 0-100%
-	BatteryDrainRate    int   `json:"battery_drain_rate"` // % por segundo
-	Speed               int   `json:"speed"`              // m/s
-	RecomendedStation   int   `json:"recomended_station"` // StationID
-	ReservedStation     int   `json:"reserved_station"`   // StationID
+	BatteryLevel        int   `json:"battery_level"`       // 0-100%
+	BatteryDrainRate    int   `json:"battery_drain_rate"`  // % por segundo
+	Speed               int   `json:"speed"`               // m/s
+	RecommendedStation  int   `json:"recommended_station"` // StationID
+	ReservedStation     int   `json:"reserved_station"`    // StationID
 	PaidReservedStation bool  `json:"paid_reserved_station"`
 	PixCode             int   `json:"pix_code"`
 	CreditCardNumber    int   `json:"credit_card_number"`
@@ -30,7 +30,7 @@ func GetNewRandomCar() Car {
 		BatteryLevel:        100, // Bateria cheia inicialmente
 		BatteryDrainRate:    1,   // % por segundo
 		Speed:               20,  // m/s
-		RecomendedStation:   -1,  // Nenhuma estação recomendada inicialmente
+		RecommendedStation:  -1,  // Nenhuma estação recomendada inicialmente
 		ReservedStation:     -1,  // Nenhuma estação reservada inicialmente
 		PaidReservedStation: false,
 		PixCode:             rand.Intn(1000000000), // Exemplo: código Pix aleatório
@@ -50,7 +50,7 @@ func (c *Car) PrintState(paymentID int) {
 	println("Battery Level:", c.BatteryLevel)
 	println("Battery Drain Rate:", c.BatteryDrainRate)
 	println("Speed:", c.Speed)
-	println("Recommended Station:", c.RecomendedStation)
+	println("Recommended Station:", c.RecommendedStation)
 	println("Reserved Station:", c.ReservedStation)
 	println("Paid Reserved Station:", c.PaidReservedStation)
 	println("Pix Code:", c.PixCode)
@@ -83,8 +83,8 @@ func (c *Car) GetSpeed() int {
 	return c.Speed
 }
 
-func (c *Car) GetRecomendedStation() int {
-	return c.RecomendedStation
+func (c *Car) GetRecommendedStation() int {
+	return c.RecommendedStation
 }
 
 func (c *Car) GetReservedStation() int {
@@ -132,8 +132,8 @@ func (c *Car) SetSpeed(speed int) {
 	c.Speed = speed
 }
 
-func (c *Car) SetRecomendedStation(recomendedStation int) {
-	c.RecomendedStation = recomendedStation
+func (c *Car) SetRecommendedStation(recommendedStation int) {
+	c.RecommendedStation = recommendedStation
 }
 
 func (c *Car) SetReservedStation(reservedStation int) {

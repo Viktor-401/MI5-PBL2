@@ -1,3 +1,15 @@
+# Pontos-Chave
+- Garantir a disponibilidade de todos os postos na viagem
+- Permitir planejamento e reserva de múltiplos postos a partir de qualquer servidor
+- Utilizar requisições atômicas
+- Comunicação entre servidores com MQTT e API REST
+- "O cliente que reservar o primeiro ponto deve manter a prioridade na reserva sobre os trechos seguintes,
+onde os demais clientes podem desistir ou continuar a compra da passagem escolhendo outros pontos de
+carregamento disponíveis" ~Não entendi essa parte
+- Pode usar framework
+- Deve usar docker, API REST testada com Insominia ou Postman, MQTT e dados gerados aleatoriamente
+- Entrega: 12/05
+
 # Problema 
 No problema anterior, foi desenvolvido um sistema inteligente de carregamento de veículos elétricos
 que pode ser aplicado para gerenciar pontos de recarga em uma cidade. Neste problema, sua startup
@@ -17,7 +29,7 @@ desenvolvimento para permitir que um cliente possa, ***a partir de qualquer serv
 carregamento disponíveis ***em diferentes empresas*** conveniadas seguindo as mesmas regras do sistema
 centralizado original. 
 
-Por exemplo, um cligente (carro) que está querendo viajar de João Pessoa à Feira de
+Por exemplo, um cliente (carro) que está querendo viajar de João Pessoa à Feira de
 Santana pode iniciar a requisição através do servidor da empresa A. Nesta requisição, o cliente escolhe um
 ponto de carregamento entre João Pessoa e Maceió, da empresa A, outro ponto de carregamento entre
 Maceió e Sergipe, da empresa B, e outro ponto de carregamento entre Sergipe a Feira de Santana, da empresa

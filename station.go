@@ -16,6 +16,9 @@ type Station struct {
 
 // Functions
 
+/*
+Retorna uma nova estação com dados aleatórios
+*/
 func GetNewRandomStation() Station {
 	// Gerar coordenadas aleatórias para a estação
 	coordX := rand.Intn(1000) // Exemplo: coordenadas entre 0 e 999
@@ -31,39 +34,49 @@ func GetNewRandomStation() Station {
 	}
 }
 
-func (c *Station) IsCarInList(carID int) bool {
+// Retorna o índice do carro na lista de espera, ou -1 se não encontrado
+func (c *Station) GetCarListIndex(carID int) int {
 	index := slices.Index(c.CarsWaitingList, carID)
-	return index != -1
+	return index
 }
 
+/*
+Adiciona um carro à lista de espera
+Retorna erro se o carro já estiver na lista
+*/
 func (c *Station) AddCarToList(carID int) error {
 	// Verifica se o carro já está na lista de espera
-	if c.IsCarInList(carID) {
-		return fmt.Errorf("Carro de ID %d já está na lista de espera", carID)
+	if c.GetCarListIndex(carID) != -1 {
+		return fmt.Errorf("carro de ID %d já está na lista de espera", carID)
 	} else {
 		c.CarsWaitingList = append(c.CarsWaitingList, carID)
 		return nil
 	}
 }
 
+/*
+Remove um carro da lista de espera
+Retorna erro se o carro não estiver na lista
+*/
 func (c *Station) RemoveCarFromList(carID int) error {
-	index := slices.Index(c.CarsWaitingList, carID)
+	// Verifica se o carro já está na lista de espera
+	index := c.GetCarListIndex(carID)
 	if index != -1 {
 		c.CarsWaitingList = slices.Delete(c.CarsWaitingList, index, index+1)
 		return nil
 	} else {
-		return fmt.Errorf("Carro de ID %d não encontrado na lista de espera", carID)
+		return fmt.Errorf("carro de ID %d não encontrado na lista de espera", carID)
 	}
 }
 
-func (c *Station) GetCarListIndex(carID int) (int, error) {
-	// Verifica se o carro está na lista de espera
-	if c.IsCarInList(carID) {
-		// Se o carro estiver na lista de espera, retorna a posição do carro
-		index := slices.Index(c.CarsWaitingList, carID)
-		return index, nil
+func (c *Station) PrintState() {
+	fmt.Printf("Estação ID: %d\n", c.StationID)
+	fmt.Printf("Coordenadas: (%d, %d)\n", c.CoordX, c.CoordY)
+	fmt.Printf("Carros na lista de espera: %v\n", c.CarsWaitingList)
+	if c.InUseBy != -1 {
+		fmt.Printf("Em uso pelo carro ID: %d\n", c.InUseBy)
 	} else {
-		return -1, fmt.Errorf("Carro de ID %d não encontrado na lista de espera", carID)
+		fmt.Println("Nenhum carro usando a estação")
 	}
 }
 
