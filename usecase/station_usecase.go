@@ -25,3 +25,10 @@ func (su *StationUsecase) CreateStation(station model.Station) (model.Station, e
 
 	return station, nil
 }
+func (su *StationUsecase) GetAllStations() ([]model.Station, error) {
+	stations, err := su.repository.GetAllStations()
+	if err != nil {
+		return nil, err
+	}
+	return stations, nil
+}

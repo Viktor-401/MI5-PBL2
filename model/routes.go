@@ -7,3 +7,4 @@ type Route struct {
     Stops       []Station  `json:"stops"` // IDs das estações de recarga
 }
 
+

@@ -36,3 +36,13 @@ func (sc *StationController) CreateStation(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, station)
 }
+
+func (sc *StationController) GetAllStations(ctx *gin.Context) {
+	stations, err := sc.stationUsecase.GetAllStations()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, stations)
+}
