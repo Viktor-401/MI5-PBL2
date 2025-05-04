@@ -38,11 +38,13 @@ func (sc *StationController) CreateStation(ctx *gin.Context) {
 }
 
 func (sc *StationController) GetAllStations(ctx *gin.Context) {
-	stations, err := sc.stationUsecase.GetAllStations()
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+	company := ctx.Query("company") // Obtém o filtro de empresa da query string
 
-	ctx.JSON(http.StatusOK, stations)
+    stations, err := sc.stationUsecase.GetAllStations(ctx, company)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    ctx.JSON(http.StatusOK, gin.H{"stations": stations})
 }

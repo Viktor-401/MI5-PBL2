@@ -1,15 +1,20 @@
 package main
 
-import (
-	"main/controller"
-	"main/repository"
-	"main/usecase"
-
-	"github.com/gin-gonic/gin"
-)
+import "github.com/gin-gonic/gin"
 
 func main() {
-	server := gin.Default()
+    // conecta no Mongo e garante desconexão ao sair
+    ConnectDB()
+    defer DisconnectDB()
+
+    // popula dados iniciais
+    SeedData()
+
+    // exemplo de uso da lógica de negócio
+    UpdateCarBattery(3, 90)
+    UpdateCarBattery(7, 50)
+
+    // cria servidor HTTP Ginserver := gin.Default()
 
 	//Realizar a conexão com o banco de dados e conectar com o repositório
 
@@ -23,6 +28,7 @@ func main() {
 	server.POST("/stations", StationController.CreateStation)
 	server.GET("/stations", StationController.GetAllStations)
 
-	server.Run(":8000")
-
+    // (aqui você adiciona /reservations/prepare, /commit, etc.)
+    r.Run(":8080") // ajusta porta por empresa (8080, 8081, 8082)
 }
+
