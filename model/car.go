@@ -5,18 +5,18 @@ import (
 )
 
 type Car struct {
-	CarID               int   `json:"car_id"`
-	CoordX              int   `json:"coord_x"`
-	CoordY              int   `json:"coord_y"`
-	BatteryLevel        int   `json:"battery_level"`       // 0-100%
-	BatteryDrainRate    int   `json:"battery_drain_rate"`  // % por segundo
-	Speed               int   `json:"speed"`               // m/s
-	RecommendedStation  int   `json:"recommended_station"` // StationID
-	ReservedStation     int   `json:"reserved_station"`    // StationID
-	PaidReservedStation bool  `json:"paid_reserved_station"`
-	PixCode             int   `json:"pix_code"`
-	CreditCardNumber    int   `json:"credit_card_number"`
-	PaymentHistory      []int `json:"payment_history"` // Slice de PaymentID
+	CarID               int   `bson:"car_id"`
+	CoordX              int   `bson:"coord_x"`
+	CoordY              int   `bson:"coord_y"`
+	BatteryLevel        int   `bson:"battery_level"`       // 0-100%
+	BatteryDrainRate    int   `bson:"battery_drain_rate"`  // % por segundo
+	Speed               int   `bson:"speed"`               // m/s
+	RecommendedStation  int   `bson:"recommended_station"` // StationID
+	ReservedStation     int   `bson:"reserved_station"`    // StationID
+	PaidReservedStation bool  `bson:"paid_reserved_station"`
+	PixCode             int   `bson:"pix_code"`
+	CreditCardNumber    int   `bson:"credit_card_number"`
+	PaymentHistory      []int `bson:"payment_history"` // Slice de PaymentID
 }
 
 // Functions

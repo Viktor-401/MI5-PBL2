@@ -1,34 +1,34 @@
 package main
 
-import "github.com/gin-gonic/gin"
+import (
+	"main/controller"
+	"main/repository"
+	"main/usecase"
+	"main/database"
 
+	"github.com/gin-gonic/gin"
+)
 func main() {
-    // conecta no Mongo e garante desconexão ao sair
-    ConnectDB()
-    defer DisconnectDB()
+    // Conecta ao MongoDB
+    database.ConnectDB()
+    defer database.DisconnectDB()
 
-    // popula dados iniciais
-    SeedData()
+    db := database.MongoClient.Database("mydb")
 
-    // exemplo de uso da lógica de negócio
-    UpdateCarBattery(3, 90)
-    UpdateCarBattery(7, 50)
+    // Configura o repositório
+    stationRepo := repository.NewStationRepository(db)
 
-    // cria servidor HTTP Ginserver := gin.Default()
+    // Popula o banco de dados
+    database.SeedData(stationRepo)
 
-	//Realizar a conexão com o banco de dados e conectar com o repositório
+    // Configurações do servidor
+    server := gin.Default()
+    stationUsecase := usecase.NewStationUseCase(stationRepo)
+    stationController := controller.NewStationController(stationUsecase)
 
-	//Camada de repositórios
-	StationRepository := repository.NewStationRepository(nil) //
-	//Camada de usecases
-	StationUsecase := usecase.NewStationUseCase(StationRepository)
-	//Camada de controllers
-	StationController := controller.NewStationController(StationUsecase)
+    server.POST("/stations", stationController.CreateStation)
+    server.GET("/stations", stationController.GetAllStations)
 
-	server.POST("/stations", StationController.CreateStation)
-	server.GET("/stations", StationController.GetAllStations)
-
-    // (aqui você adiciona /reservations/prepare, /commit, etc.)
-    r.Run(":8080") // ajusta porta por empresa (8080, 8081, 8082)
+    server.Run(":8080")
 }
 

@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"main/model"
 	"main/repository"
 )
@@ -25,8 +26,8 @@ func (su *StationUsecase) CreateStation(station model.Station) (model.Station, e
 
 	return station, nil
 }
-func (su *StationUsecase) GetAllStations(ctx context.Context) ([]model.Station, error) {
-	stations, err := su.repository.GetAllStations(ctx)
+func (su *StationUsecase) GetAllStations(ctx context.Context, company string) ([]model.Station, error) {
+	stations, err := su.repository.GetAllStations(ctx, company)
 	if err != nil {
 		return nil, err
 	}
