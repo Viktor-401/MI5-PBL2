@@ -7,12 +7,12 @@ import (
 )
 
 type Station struct {
-	StationID int    `json:"station_id"`
-	CoordX    int    `json:"coord_x"`
-	CoordY    int    `json:"coord_y"`
-	Company   string `json:"company"` // Nome da empresa
-	//CarsWaitingList []int `json:"cars_waiting_list"`
-	InUseBy int `json:"in_use"` // CarID
+	StationID int    `bson:"station_id"`
+	CoordX    int    `bson:"coord_x"`
+	CoordY    int    `bson:"coord_y"`
+	Company   string `bson:"company"` // Nome da empresa
+	//CarsWaitingList []int `bson:"cars_waiting_list"`
+	InUseBy int `bson:"in_use"` // CarID
 }
 
 // Functions

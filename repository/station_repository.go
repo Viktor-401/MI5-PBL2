@@ -20,39 +20,37 @@ func NewStationRepository(db *mongo.Database) StationRepository {
 	}
 }
 func (sr *StationRepository) CreateStation(station model.Station) (int, error) {
-	// Insere a estação na coleção
-	result, err := sr.collection.InsertOne(context.TODO(), station)
-	if err != nil {
-		return 0, fmt.Errorf("erro ao criar estação: %w", err)
-	}
+    // Insere a estação na coleção
+    _, err := sr.collection.InsertOne(context.TODO(), station)
+    if err != nil {
+        return 0, fmt.Errorf("erro ao criar estação: %w", err)
+    }
 
-	// Converte o ID gerado para int, se possível
-	id, ok := result.InsertedID.(int)
-	if !ok {
-		return 0, fmt.Errorf("erro ao converter o ID da estação para int")
-	}
-
-	return id, nil
+    // Retorna o ID da estação
+    return station.StationID, nil
 }
 
 func (sr *StationRepository) GetAllStations(ctx context.Context, company string) ([]model.Station, error) {
-	filter := bson.M{}
-	if company != "" {
-		filter["company"] = company
-	}
+    // Define o filtro para a consulta
+    filter := bson.M{}
+    if company != "" {
+        filter["company"] = company
+    }
 
-	cursor, err := sr.collection.Find(ctx, filter)
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-	var stations []model.Station
+    // Realiza a consulta no MongoDB
+    cursor, err := sr.collection.Find(ctx, filter)
+    if err != nil {
+        return nil, fmt.Errorf("erro ao buscar estações: %w", err)
+    }
+    defer cursor.Close(ctx)
 
-	err = cursor.All(ctx, &stations)
-	if err != nil {
-		return nil, err
-	}
-	return stations, nil
+    // Decodifica todos os documentos encontrados
+    var stations []model.Station
+    if err := cursor.All(ctx, &stations); err != nil {
+        return nil, fmt.Errorf("erro ao decodificar estações: %w", err)
+    }
+
+    return stations, nil
 }
 func (sr *StationRepository) ClearStations(ctx context.Context) error {
 	err := sr.collection.Drop(ctx)
