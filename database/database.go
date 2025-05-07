@@ -10,6 +10,7 @@ import (
 )
 
 var MongoClient *mongo.Client
+var Database *mongo.Database
 
 // ConnectDB abre a conexão uma vez
 func ConnectDB() {
@@ -22,6 +23,15 @@ func ConnectDB() {
 		panic(err)
 	}
 	MongoClient = client
+
+	// Obtém o nome do banco de dados da variável de ambiente
+	dbName := os.Getenv("DB_NAME")
+	if dbName == "" {
+		panic("DB_NAME não definido")
+	}
+
+	// Cria uma referência ao banco de dados
+	Database = MongoClient.Database(dbName)
 }
 
 // DisconnectDB fecha a conexão
