@@ -20,10 +20,20 @@ func main() {
 	db := database.Database
 
 	// Configura o repositório
-	stationRepo := repository.NewStationRepository(db)
+	//stationRepo := repository.NewStationRepository(db)
 
 	// Popula o banco de dados
-	database.SeedData(stationRepo)
+	//database.SeedData(stationRepo)
+
+	// Configura o repositório
+    routeRepo := repository.NewRouteRepository(db)
+
+    // Configura o usecase
+    routeUsecase := usecase.NewRouteUsecase(routeRepo)
+
+    // Configura o controlador
+    routeController := controller.NewRouteController(routeUsecase)
+	
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080" // Fallback para a porta 8080 se a variável de ambiente não estiver configurada
@@ -43,8 +53,11 @@ func main() {
 	// Rotas relacionadas à comunicação entre servidores
 	server.GET("/server/stations", serverController.GetStationsFromServer)
 	server.POST("/server/reserve", serverController.ReserveStationOnServer)
-
 	server.POST("/stations/reserve", stationController.ReserveStation)
+
+	// Rotas relacionadas às rotas
+    server.POST("/routes", routeController.CreateRoute)
+    server.GET("/routes", routeController.GetRoutes)
 
 	server.Run(fmt.Sprintf(":%s", port))
 }

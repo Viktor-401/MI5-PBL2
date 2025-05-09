@@ -1,10 +1,11 @@
 package model
 
 type Route struct {
-    RouteID          int    `json:"id"`
-    Origin      string `json:"origin"`
-    Destination string `json:"destination"`
-    Stops       []Station  `json:"stops"` // IDs das estações de recarga
+    ID          string   `bson:"_id,omitempty"` // ID gerado pelo MongoDB
+    StartCity   string   `bson:"start_city"`    // Cidade de origem
+    EndCity     string   `bson:"end_city"`      // Cidade de destino
+    Waypoints   []string `bson:"waypoints"`     // Cidades intermediárias
+    Company     string   `bson:"company"`       // Empresa responsável
+    DistanceKM  int      `bson:"distance_km"`   // Distância total em quilômetros
 }
-
 
