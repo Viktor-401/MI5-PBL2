@@ -12,6 +12,7 @@ type RouteController struct {
     routeUsecase usecase.RouteUsecase
 }
 
+// Construtor para o RouteController
 func NewRouteController(usecase usecase.RouteUsecase) RouteController {
     return RouteController{
         routeUsecase: usecase,
@@ -20,20 +21,22 @@ func NewRouteController(usecase usecase.RouteUsecase) RouteController {
 
 // Endpoint para criar uma nova rota
 func (rc *RouteController) CreateRoute(ctx *gin.Context) {
-    route := model.Route{}
+    var route model.Route
 
-    err := ctx.BindJSON(&route)
-    if err != nil {
+    // Faz o bind do JSON recebido para o modelo Route
+    if err := ctx.BindJSON(&route); err != nil {
         ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
         return
     }
 
-    err = rc.routeUsecase.CreateRoute(&route)
+    // Chama o usecase para criar a rota
+    err := rc.routeUsecase.CreateRoute(&route)
     if err != nil {
         ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
     }
 
+    // Retorna a rota criada
     ctx.JSON(http.StatusOK, route)
 }
 
@@ -42,19 +45,19 @@ func (rc *RouteController) GetRoutes(ctx *gin.Context) {
     startCity := ctx.Query("start_city") // Obtém a cidade de origem da query string
     endCity := ctx.Query("end_city")    // Obtém a cidade de destino da query string
 
+    // Valida se os parâmetros foram fornecidos
     if startCity == "" || endCity == "" {
         ctx.JSON(http.StatusBadRequest, gin.H{"error": "start_city e end_city são obrigatórios"})
         return
     }
 
+    // Chama o usecase para buscar as rotas
     routes, err := rc.routeUsecase.GetRoutesBetweenCities(startCity, endCity)
     if err != nil {
         ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
     }
 
+    // Retorna as rotas encontradas
     ctx.JSON(http.StatusOK, gin.H{"routes": routes})
 }
-
-
-

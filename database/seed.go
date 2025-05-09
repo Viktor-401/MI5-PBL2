@@ -3,9 +3,11 @@ package database
 import (
 	"context"
 	"fmt"
+    "log"
 	"main/model"
 	"main/repository"
 	"time"
+    "go.mongodb.org/mongo-driver/mongo"
 )
 
 // SeedData limpa e insere dados iniciais em cars e stations

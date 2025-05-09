@@ -1,21 +1,24 @@
 package usecase
 
 import (
-	"main/model"
-	"main/repository"
+    "main/model"
+    "main/repository"
 )
 
 type RouteUsecase struct {
-	repository repository.RouteRepository
+    routeRepo repository.RouteRepository
 }
 
-func NewRouteUseCase(repo repository.RouteRepository) RouteUsecase {
-	return RouteUsecase{
-		repository: repo,
-	}
+func NewRouteUsecase(routeRepo *repository.RouteRepository) RouteUsecase {
+    return RouteUsecase{
+        routeRepo: *routeRepo, // Desreferencia o ponteiro
+    }
 }
 
 func (ru *RouteUsecase) CreateRoute(route *model.Route) error {
+    return ru.routeRepo.CreateRoute(route)
+}
 
-	return nil
+func (ru *RouteUsecase) GetRoutesBetweenCities(startCity, endCity string) ([]model.Route, error) {
+    return ru.routeRepo.GetRoutesBetweenCities(startCity, endCity)
 }

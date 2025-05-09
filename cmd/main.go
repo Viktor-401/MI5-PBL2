@@ -20,10 +20,13 @@ func main() {
 	db := database.Database
 
 	// Configura o repositório
-	//stationRepo := repository.NewStationRepository(db)
+	stationRepo := repository.NewStationRepository(db)
 
 	// Popula o banco de dados
 	//database.SeedData(stationRepo)
+
+	// Popula o banco de dados com rotas
+    database.SeedRoutes(db) // Adicione esta linha para popular as rotas
 
 	// Configura o repositório
     routeRepo := repository.NewRouteRepository(db)
