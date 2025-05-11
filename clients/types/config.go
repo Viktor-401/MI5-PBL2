@@ -1,4 +1,4 @@
-package global
+package types
 
 // const BROKER = "mqtt.eclipseprojects.io"
 // const BROKER = "localhost"

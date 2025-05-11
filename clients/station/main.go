@@ -17,6 +17,7 @@ type Station struct {
 }
 
 func main() {
+	// Input das informações do posto
 	serverIP, stationID := "", 0
 	fmt.Println("Insira o IP do server/empresa a qual esse posto pertence:")
 	fmt.Scanln(&serverIP)
@@ -27,12 +28,14 @@ func main() {
 	Posto ID: %d
 	IP do Servidor: %s`, stationID, serverIP)
 
+	// Cria o cliente MQTT
 	mqttClient, err := mqtt.NewMQTTClient(types.PORT, types.BROKER)
 	if err != nil {
 		fmt.Println("Error creating MQTT client:", err)
 		return
 	}
 
+	// Estado do posto
 	station := Station{
 		StationID:  stationID,
 		ServerIP:   serverIP,
@@ -40,6 +43,7 @@ func main() {
 		Mqtt:       mqttClient,
 	}
 
+	// Mensagem de nascimento do posto, que informa o servidor que o posto está online
 	birthMessage, err := station.BirthMessage()
 	if err != nil {
 		fmt.Println("Error creating birth message:", err)
@@ -51,24 +55,50 @@ func main() {
 		return
 	}
 
-	// Subscribe to the topic
-	topic := types.StationConsultTopic(station.ServerIP, station.StationID)
+	// Topico para reservar o posto
+	topic := types.StationReserveTopic(station.ServerIP, station.StationID)
+	// Inscrição no tópico de reserva, e atribui a função de callback
 	station.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
-		message := types.MQTT_Message{
-			Topic: msg.Topic(),
+		carInfo := &types.CarInfo{}
+		// Decodifica a mensagem recebida
+		err := json.Unmarshal(msg.Payload(), carInfo)
+		if err != nil {
+			fmt.Println("Error unmarshalling car info:", err)
+			return
 		}
-
-		station.Mqtt.Publish(message)
-
-		mqttMessage := types.MQTT_Message{}
-		json.Unmarshal(msg.Payload(), &mqttMessage)
-		fmt.Printf("Topic: %s\n", mqttMessage.Topic)
-		fmt.Printf("Message: %s\n", mqttMessage.Message)
+		// Atualiza o ID do carro que reservou o posto
+		station.ReservedBy = carInfo.CarId
+		fmt.Printf("Posto %d reservado pelo carro %d\n", station.StationID, carInfo.CarId)
 	})
+
+	// Mantem o cliente MQTT ativo até o usuário encerrar
+	fmt.Println("Enter para encerra o posto")
+	fmt.Scanln()
+	// Mensagem de morte do posto, que informa o servidor que o posto está offline
+	message, err := station.DeathMessage()
+	if err != nil {
+		fmt.Println("Error creating death message:", err)
+		return
+	}
+	station.Mqtt.Publish(message)
 }
 
 func (s *Station) BirthMessage() (types.MQTT_Message, error) {
 	topic := types.StationBirthTopic(s.ServerIP)
+
+	payload, err := json.Marshal(s)
+	if err != nil {
+		return types.MQTT_Message{}, err
+	}
+
+	return types.MQTT_Message{
+		Topic:   topic,
+		Message: payload,
+	}, nil
+}
+
+func (s *Station) DeathMessage() (types.MQTT_Message, error) {
+	topic := types.StationDeathTopic(s.ServerIP)
 
 	payload, err := json.Marshal(s)
 	if err != nil {
