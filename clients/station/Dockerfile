@@ -11,5 +11,7 @@ COPY . .
 WORKDIR /app/station
 RUN go build -o station-client .
 
+# RUN chmod +x station-client
+
 EXPOSE 8080
 CMD ["./station-client"]

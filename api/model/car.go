@@ -1,74 +1,40 @@
 package model
 
 import (
+	"fmt"
 	"math/rand"
 )
 
 type Car struct {
-	CarID               int   `bson:"car_id"`
-	CoordX              int   `bson:"coord_x"`
-	CoordY              int   `bson:"coord_y"`
-	BatteryLevel        int   `bson:"battery_level"`       // 0-100%
-	BatteryDrainRate    int   `bson:"battery_drain_rate"`  // % por segundo
-	Speed               int   `bson:"speed"`               // m/s
-	RecommendedStation  int   `bson:"recommended_station"` // StationID
-	ReservedStation     int   `bson:"reserved_station"`    // StationID
-	PaidReservedStation bool  `bson:"paid_reserved_station"`
-	PixCode             int   `bson:"pix_code"`
-	CreditCardNumber    int   `bson:"credit_card_number"`
-	PaymentHistory      []int `bson:"payment_history"` // Slice de PaymentID
+	CarID            int   `bson:"car_id"`
+	BatteryLevel     int   `bson:"battery_level"`      // 0-100%
+	BatteryDrainRate int   `bson:"battery_drain_rate"` // % por segundo
+	ReservedRoute    Route `bson:"reserved_route"`     // Rota reservada
 }
 
 // Functions
-
 func GetNewRandomCar() Car {
+	fmt.Println("Insira o ID do carro:")
+	carID := 0
+	fmt.Scanln(&carID)
 	// Criar um novo carro com as coordenadas geradas
 	return Car{
-		CarID:               rand.Intn(1000), // Exemplo: ID do carro entre 0 e 999
-		CoordX:              rand.Intn(1000),
-		CoordY:              rand.Intn(1000),
-		BatteryLevel:        100, // Bateria cheia inicialmente
-		BatteryDrainRate:    1,   // % por segundo
-		Speed:               20,  // m/s
-		RecommendedStation:  -1,  // Nenhuma estação recomendada inicialmente
-		ReservedStation:     -1,  // Nenhuma estação reservada inicialmente
-		PaidReservedStation: false,
-		PixCode:             rand.Intn(1000000000), // Exemplo: código Pix aleatório
-		CreditCardNumber:    rand.Intn(1000000000), // Exemplo: número do cartão de crédito aleatório
-	}
-}
-
-func (c *Car) PrintPaymentHistory() {
-	for _, payment := range c.PaymentHistory {
-		println("Payment ID:", payment)
+		CarID:            carID,              // Exemplo: ID do carro entre 0 e 999
+		BatteryLevel:     rand.Intn(50) + 50, // Bateria cheia inicialmente (50-100%)
+		BatteryDrainRate: rand.Intn(3) + 1,   // % por KM (1-3%)
+		ReservedRoute:    Route{},
 	}
 }
 
 func (c *Car) PrintState(paymentID int) {
 	println("Car ID:", c.CarID)
-	println("Coordinates:", c.CoordX, c.CoordY)
 	println("Battery Level:", c.BatteryLevel)
 	println("Battery Drain Rate:", c.BatteryDrainRate)
-	println("Speed:", c.Speed)
-	println("Recommended Station:", c.RecommendedStation)
-	println("Reserved Station:", c.ReservedStation)
-	println("Paid Reserved Station:", c.PaidReservedStation)
-	println("Pix Code:", c.PixCode)
-	println("Credit Card Number:", c.CreditCardNumber)
-	c.PrintPaymentHistory()
+	c.ReservedRoute.PrintRoute()
 }
 
-// Getters
 func (c *Car) GetCarID() int {
 	return c.CarID
-}
-
-func (c *Car) GetCoordX() int {
-	return c.CoordX
-}
-
-func (c *Car) GetCoordY() int {
-	return c.CoordY
 }
 
 func (c *Car) GetBatteryLevel() int {
@@ -79,45 +45,12 @@ func (c *Car) GetBatteryDrainRate() int {
 	return c.BatteryDrainRate
 }
 
-func (c *Car) GetSpeed() int {
-	return c.Speed
+func (c *Car) GetReservedRoute() Route {
+	return c.ReservedRoute
 }
 
-func (c *Car) GetRecommendedStation() int {
-	return c.RecommendedStation
-}
-
-func (c *Car) GetReservedStation() int {
-	return c.ReservedStation
-}
-
-func (c *Car) GetPaidReservedStation() bool {
-	return c.PaidReservedStation
-}
-
-func (c *Car) GetPixCode() int {
-	return c.PixCode
-}
-
-func (c *Car) GetCreditCardNumber() int {
-	return c.CreditCardNumber
-}
-
-func (c *Car) GetPaymentHistory() []int {
-	return c.PaymentHistory
-}
-
-// Setters
-func (c *Car) SetCarID(carID int) {
-	c.CarID = carID
-}
-
-func (c *Car) SetCoordX(coordX int) {
-	c.CoordX = coordX
-}
-
-func (c *Car) SetCoordY(coordY int) {
-	c.CoordY = coordY
+func (c *Car) SetReservedRoute(route Route) {
+	c.ReservedRoute = route
 }
 
 func (c *Car) SetBatteryLevel(batteryLevel int) {
@@ -128,30 +61,6 @@ func (c *Car) SetBatteryDrainRate(batteryDrainRate int) {
 	c.BatteryDrainRate = batteryDrainRate
 }
 
-func (c *Car) SetSpeed(speed int) {
-	c.Speed = speed
-}
-
-func (c *Car) SetRecommendedStation(recommendedStation int) {
-	c.RecommendedStation = recommendedStation
-}
-
-func (c *Car) SetReservedStation(reservedStation int) {
-	c.ReservedStation = reservedStation
-}
-
-func (c *Car) SetPaidReservedStation(paidReservedStation bool) {
-	c.PaidReservedStation = paidReservedStation
-}
-
-func (c *Car) SetPixCode(pixCode int) {
-	c.PixCode = pixCode
-}
-
-func (c *Car) SetCreditCardNumber(creditCardNumber int) {
-	c.CreditCardNumber = creditCardNumber
-}
-
-func (c *Car) SetPaymentHistory(paymentHistory []int) {
-	c.PaymentHistory = paymentHistory
+func (c *Car) SetCarID(carID int) {
+	c.CarID = carID
 }

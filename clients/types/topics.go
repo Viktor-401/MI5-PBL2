@@ -58,6 +58,11 @@ type RoutesMessage struct {
 	City2 string `json:"city2"`
 }
 
+type SelectRouteMessage struct {
+	Car   Car   `json:"car"`
+	Route Route `json:"route"`
+}
+
 type RoutesList struct {
 	Routes []Route `json:"routes"`
 }

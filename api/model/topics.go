@@ -1,4 +1,4 @@
-package types
+package model
 
 import (
 	"fmt"
@@ -56,6 +56,11 @@ type CarInfo struct {
 type RoutesMessage struct {
 	City1 string `json:"city1"`
 	City2 string `json:"city2"`
+}
+
+type SelectRouteMessage struct {
+	Car   Car   `json:"car"`
+	Route Route `json:"route"`
 }
 
 type RoutesList struct {

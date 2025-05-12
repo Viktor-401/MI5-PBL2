@@ -1,4 +1,4 @@
-package car
+package main
 
 import (
 	mqtt "clients/mqtt"
@@ -17,6 +17,7 @@ type CarState struct {
 }
 
 func main() {
+	waitChan := make(chan bool, 1)
 	car := types.GetNewRandomCar()
 
 	// Cria o cliente MQTT
@@ -53,6 +54,7 @@ func main() {
 	carState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
 		// Funcao de callback para quando uma mensagem é recebida
 		UnmarshalListRoutes(msg)
+		waitChan <- true
 	})
 
 	// Inscrição no tópico de reserva de rotas
@@ -65,7 +67,7 @@ func main() {
 			return
 		}
 
-		message, err := carState.SelectRouteMessage(route)
+		message, err := carState.SelectRouteMessage(carState.Car, route)
 		if err != nil {
 			fmt.Println("Error creating reserve route message:", err)
 			return
@@ -75,6 +77,7 @@ func main() {
 			fmt.Println("Error publishing reserve route message:", err)
 			return
 		}
+		waitChan <- true
 	})
 
 	exit := false
@@ -117,6 +120,7 @@ func main() {
 		} else {
 			fmt.Println("Ação inválida. Tente novamente.")
 		}
+		<-waitChan
 	}
 
 	// Mantem o cliente MQTT ativo até o usuário encerrar
@@ -202,10 +206,14 @@ func (s *CarState) ReserveRouteMessage(city1 string, city2 string) (types.MQTT_M
 }
 
 // Retorna a mensagem de reserva de rotas para ser enviada ao servidor via MQTT
-func (s *CarState) SelectRouteMessage(route types.Route) (types.MQTT_Message, error) {
+func (s *CarState) SelectRouteMessage(car types.Car, route types.Route) (types.MQTT_Message, error) {
 	topic := types.CarSelectRouteTopic(s.ServerIP, s.Car.GetCarID())
 
-	payload, err := json.Marshal(route)
+	selectRouteMessage := types.SelectRouteMessage{
+		Car:   car,
+		Route: route,
+	}
+	payload, err := json.Marshal(selectRouteMessage)
 	if err != nil {
 		return types.MQTT_Message{}, err
 	}

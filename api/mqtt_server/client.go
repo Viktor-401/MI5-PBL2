@@ -1,6 +1,7 @@
-package main
+package mqtt_server
 
 import (
+	model "api/model"
 	mqtt "api/mqtt"
 	types "api/types"
 	"encoding/json"
@@ -14,7 +15,7 @@ type ServerState struct {
 	Mqtt     *mqtt.MQTT
 }
 
-func main() {
+func MqttMain() {
 	// Cria o cliente MQTT
 	mqttClient, err := mqtt.NewMQTTClient(types.PORT, types.BROKER)
 	if err != nil {
@@ -23,7 +24,7 @@ func main() {
 	}
 
 	serverIP := ""
-	fmt.Println("Insira o IP do server/empresa a qual esse carro pertence:")
+	fmt.Println("Insira o IP do server/empresa:")
 	fmt.Scanln(&serverIP)
 
 	serverState := ServerState{
@@ -32,99 +33,115 @@ func main() {
 	}
 
 	// Inscrição no tópico de nascimento do carro
-	topic := types.CarBirthTopic(serverState.ServerIP)
+	topic := model.CarBirthTopic(serverState.ServerIP)
 	serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
 		// Funcao de callback
 		// adiciona o carro na database e se inscreve no tópico de consulta e reserva de rotas
 
-		mqttMessage := &types.MQTT_Message{}
+		mqttMessage := &model.MQTT_Message{}
 		json.Unmarshal(msg.Payload(), mqttMessage)
 
-		car := &types.Car{}
+		car := &model.Car{}
 		json.Unmarshal(mqttMessage.Message, car)
 
-		// TODO adicionar o carro na database
+		// TODO adicionar o carro (car) na database
 
 		// Inscrição no tópico de consulta de rotas
-		topic = types.CarConsultTopic(serverIP, car.GetCarID())
+		topic = model.CarConsultTopic(serverIP, car.GetCarID())
 		serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
 			// Funcao de callback
 			// Deve retornar uma mensagem com payload ListRoutes
-			mqttMessage := &types.MQTT_Message{}
+			mqttMessage := &model.MQTT_Message{}
 			json.Unmarshal(msg.Payload(), mqttMessage)
 
-			routesMessage := &types.RoutesMessage{}
+			routesMessage := &model.RoutesMessage{}
 			json.Unmarshal(mqttMessage.Message, routesMessage)
 
 			// city1, city2 := routesMessage.City1, routesMessage.City2
 			// TODO requisitar as rotas pela API e retornar na variavel routesList
-			routesList := types.RoutesList{
-				Routes: []types.Route{},
+			routesList := model.RoutesList{
+				Routes: []model.Route{},
 			}
 
 			payload, _ := json.Marshal(routesList)
 
-			mqttMessage = &types.MQTT_Message{
-				Topic:   topic,
+			mqttMessage = &model.MQTT_Message{
+				Topic:   model.CarConsultTopic(serverIP, car.GetCarID()),
 				Message: payload,
 			}
 			serverState.Mqtt.Publish(*mqttMessage)
 		})
 
 		// Inscrição no tópico de reserva de rotas
-		topic = types.CarReserveTopic(serverIP, car.GetCarID())
+		topic = model.CarReserveTopic(serverIP, car.GetCarID())
 		serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
 			// Funcao de callback
 			// Deve retornar uma mensagem com payload ListRoutes
-			mqttMessage := &types.MQTT_Message{}
+			mqttMessage := &model.MQTT_Message{}
 			json.Unmarshal(msg.Payload(), mqttMessage)
 
-			routesMessage := &types.RoutesMessage{}
+			routesMessage := &model.RoutesMessage{}
 			json.Unmarshal(mqttMessage.Message, routesMessage)
 
 			// city1, city2 := routesMessage.City1, routesMessage.City2
 			// TODO requisitar as rotas pela API e retornar na variavel routesList
-			routesList := types.RoutesList{
-				Routes: []types.Route{},
+			routesList := model.RoutesList{
+				Routes: []model.Route{},
 			}
 
 			payload, _ := json.Marshal(routesList)
 
-			mqttMessage = &types.MQTT_Message{
-				Topic:   topic,
+			mqttMessage = &model.MQTT_Message{
+				Topic:   model.CarReserveTopic(serverIP, car.GetCarID()),
 				Message: payload,
 			}
 			serverState.Mqtt.Publish(*mqttMessage)
 		})
 
-		topic = types.CarSelectRouteTopic(serverIP, car.GetCarID())
+		topic = model.CarSelectRouteTopic(serverIP, car.GetCarID())
 		serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
 			// Funcao de callback
 			// Deve retornar uma mensagem com payload ListRoutes
-			mqttMessage := &types.MQTT_Message{}
+			mqttMessage := &model.MQTT_Message{}
 			json.Unmarshal(msg.Payload(), mqttMessage)
 
-			route := &types.Route{}
-			json.Unmarshal(mqttMessage.Message, route)
+			selectRouteMessage := &model.SelectRouteMessage{}
+			json.Unmarshal(mqttMessage.Message, selectRouteMessage)
+			// car := selectRouteMessage.Car
+			// route := selectRouteMessage.Route
+			// for _, waypoint := range route.Waypoints {
+			// 	topic = model.StationReserveTopic(serverIP, waypoint)
+
+			// 	carInfo := &model.CarInfo{
+			// 		CarId: car.GetCarID(),
+			// 	}
+			// 	payload, _ := json.Marshal(carInfo)
+
+			// 	mqttMessage = &model.MQTT_Message{
+			// 		Topic:   topic,
+			// 		Message: payload,
+			// 	}
+
+			// 	serverState.Mqtt.Publish(*mqttMessage)
+			// }
 
 			// TODO reservar a rota pela API
 		})
 
-		topic = types.CarDeathTopic(serverIP)
+		topic = model.CarDeathTopic(serverIP)
 		serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
 			// Funcao de callback
 			// Retira o carro da database
-			mqttMessage := &types.MQTT_Message{}
+			mqttMessage := &model.MQTT_Message{}
 			json.Unmarshal(msg.Payload(), mqttMessage)
 
-			car := &types.Car{}
+			car := &model.Car{}
 			json.Unmarshal(mqttMessage.Message, car)
 
 			serverState.Mqtt.Client.Unsubscribe(
-				types.CarConsultTopic(serverIP, car.GetCarID()),
-				types.CarReserveTopic(serverIP, car.GetCarID()),
-				types.CarSelectRouteTopic(serverIP, car.GetCarID()),
-				types.CarDeathTopic(serverIP),
+				model.CarConsultTopic(serverIP, car.GetCarID()),
+				model.CarReserveTopic(serverIP, car.GetCarID()),
+				model.CarSelectRouteTopic(serverIP, car.GetCarID()),
 			)
 
 			// TODO retirar o carro da database
@@ -132,18 +149,30 @@ func main() {
 	})
 
 	// Inscrição no tópico de nascimento de um posto
-	topic = types.StationBirthTopic(serverIP)
+	topic = model.StationBirthTopic(serverIP)
 	serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
 		// Funcao de callback
 		// Adiciona o posto na database
+		mqttMessage := &model.MQTT_Message{}
+		json.Unmarshal(msg.Payload(), mqttMessage)
+		station := &model.Station{}
+		json.Unmarshal(mqttMessage.Message, station)
 
-	})
+		// TODO adicionar o posto (station) na database
 
-	// Inscrição no tópico de nascimento de um posto
-	topic = types.StationDeathTopic(serverIP)
-	serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
-		// Funcao de callback
-		// Retira o posto da database
+		// Inscrição no tópico de nascimento de um posto
+		topic = model.StationDeathTopic(serverIP)
+		serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
+			// Funcao de callback
+			// Retira o posto da database
+
+			mqttMessage := &model.MQTT_Message{}
+			json.Unmarshal(msg.Payload(), mqttMessage)
+			station := &model.Station{}
+			json.Unmarshal(mqttMessage.Message, station)
+
+			// TODO retirar o posto (station) da database
+		})
 	})
 
 	// Mantem o cliente MQTT ativo até o usuário encerrar

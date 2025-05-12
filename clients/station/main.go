@@ -1,4 +1,4 @@
-package station
+package main
 
 import (
 	mqtt "clients/mqtt"
@@ -86,7 +86,13 @@ func main() {
 func (s *Station) BirthMessage() (types.MQTT_Message, error) {
 	topic := types.StationBirthTopic(s.ServerIP)
 
-	payload, err := json.Marshal(s)
+	station := &types.Station{
+		ID:         s.StationID,
+		ServerIP:   s.ServerIP,
+		ReservedBy: s.ReservedBy,
+	}
+
+	payload, err := json.Marshal(station)
 	if err != nil {
 		return types.MQTT_Message{}, err
 	}
