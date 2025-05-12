@@ -1,10 +1,10 @@
-package main
+package station
 
 import (
+	mqtt "clients/mqtt"
+	types "clients/types"
 	"encoding/json"
 	"fmt"
-	mqtt "mqtt_config/mqtt"
-	types "mqtt_config/types"
 
 	paho "github.com/eclipse/paho.mqtt.golang"
 )

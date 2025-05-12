@@ -1,10 +1,10 @@
-package main
+package car
 
 import (
+	mqtt "clients/mqtt"
+	types "clients/types"
 	"encoding/json"
 	"fmt"
-	mqtt "mqtt_config/mqtt"
-	types "mqtt_config/types"
 	"strconv"
 
 	paho "github.com/eclipse/paho.mqtt.golang"
@@ -133,9 +133,9 @@ func main() {
 
 // Retorna a mensagem de nascimento do carro, que informa o servidor que o carro está online
 func (s *CarState) BirthMessage() (types.MQTT_Message, error) {
-	topic := types.StationBirthTopic(s.ServerIP)
+	topic := types.CarBirthTopic(s.ServerIP)
 
-	payload, err := json.Marshal(s)
+	payload, err := json.Marshal(s.Car)
 	if err != nil {
 		return types.MQTT_Message{}, err
 	}
@@ -148,9 +148,9 @@ func (s *CarState) BirthMessage() (types.MQTT_Message, error) {
 
 // Retorna a mensagem de morte do carro, que informa o servidor que o carro está offline
 func (s *CarState) DeathMessage() (types.MQTT_Message, error) {
-	topic := types.StationDeathTopic(s.ServerIP)
+	topic := types.CarDeathTopic(s.ServerIP)
 
-	payload, err := json.Marshal(s)
+	payload, err := json.Marshal(s.Car)
 	if err != nil {
 		return types.MQTT_Message{}, err
 	}
@@ -203,7 +203,7 @@ func (s *CarState) ReserveRouteMessage(city1 string, city2 string) (types.MQTT_M
 
 // Retorna a mensagem de reserva de rotas para ser enviada ao servidor via MQTT
 func (s *CarState) SelectRouteMessage(route types.Route) (types.MQTT_Message, error) {
-	topic := types.CarReserveTopic(s.ServerIP, s.Car.GetCarID())
+	topic := types.CarSelectRouteTopic(s.ServerIP, s.Car.GetCarID())
 
 	payload, err := json.Marshal(route)
 	if err != nil {
@@ -238,8 +238,15 @@ func CityInput() (string, string) {
 
 func UnmarshalListRoutes(msg paho.Message) types.RoutesList {
 	// Deserializa a mensagem recebida
+	mqttMessage := &types.MQTT_Message{}
+	err := json.Unmarshal(msg.Payload(), mqttMessage)
+	if err != nil {
+		fmt.Println("Error unmarshalling message:", err)
+		return types.RoutesList{}
+	}
+
 	routesMessage := &types.RoutesList{}
-	err := json.Unmarshal(msg.Payload(), &routesMessage)
+	err = json.Unmarshal(mqttMessage.Message, &routesMessage)
 	if err != nil {
 		fmt.Println("Error unmarshalling message:", err)
 		return types.RoutesList{}

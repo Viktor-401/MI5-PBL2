@@ -1,8 +1,8 @@
 package repository
 
 import (
+	"api/model"
 	"context"
-	"main/model"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"

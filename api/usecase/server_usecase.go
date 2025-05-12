@@ -1,11 +1,11 @@
 package usecase
 
 import (
+	"api/model"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
-	"main/model"
 	"net/http"
 )
 

@@ -1,9 +1,9 @@
 package usecase
 
 import (
+	"api/model"
+	"api/repository"
 	"context"
-	"main/model"
-	"main/repository"
 	"fmt"
 )
 
@@ -37,35 +37,35 @@ func (su *StationUsecase) GetAllStations(ctx context.Context, company string) ([
 }
 
 func (su *StationUsecase) ReserveStation(ctx context.Context, stationID int, carID int) error {
-    // Busca a estação pelo ID
-    stations, err := su.repository.GetAllStations(ctx, "")
-    if err != nil {
-        return fmt.Errorf("erro ao buscar estações: %w", err)
-    }
+	// Busca a estação pelo ID
+	stations, err := su.repository.GetAllStations(ctx, "")
+	if err != nil {
+		return fmt.Errorf("erro ao buscar estações: %w", err)
+	}
 
-    var stationToReserve *model.Station
-    for _, station := range stations {
-        if station.StationID == stationID {
-            stationToReserve = &station
-            break
-        }
-    }
+	var stationToReserve *model.Station
+	for _, station := range stations {
+		if station.StationID == stationID {
+			stationToReserve = &station
+			break
+		}
+	}
 
-    if stationToReserve == nil {
-        return fmt.Errorf("estação com ID %d não encontrada", stationID)
-    }
+	if stationToReserve == nil {
+		return fmt.Errorf("estação com ID %d não encontrada", stationID)
+	}
 
-    // Verifica se a estação já está em uso
-    if stationToReserve.InUseBy != -1 {
-        return fmt.Errorf("estação com ID %d já está em uso", stationID)
-    }
+	// Verifica se a estação já está em uso
+	if stationToReserve.InUseBy != -1 {
+		return fmt.Errorf("estação com ID %d já está em uso", stationID)
+	}
 
-    // Atualiza a estação para marcar como reservada
-    stationToReserve.InUseBy = carID
-    err = su.repository.UpdateStation(ctx, *stationToReserve)
-    if err != nil {
-        return fmt.Errorf("erro ao reservar estação: %w", err)
-    }
+	// Atualiza a estação para marcar como reservada
+	stationToReserve.InUseBy = carID
+	err = su.repository.UpdateStation(ctx, *stationToReserve)
+	if err != nil {
+		return fmt.Errorf("erro ao reservar estação: %w", err)
+	}
 
-    return nil
+	return nil
 }

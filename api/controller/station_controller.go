@@ -1,8 +1,8 @@
 package controller
 
 import (
-	"main/model"
-	"main/usecase"
+	"api/model"
+	"api/usecase"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

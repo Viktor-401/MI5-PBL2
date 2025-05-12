@@ -1,13 +1,14 @@
 package database
 
 import (
+	"api/model"
+	"api/repository"
 	"context"
 	"fmt"
-    "log"
-	"main/model"
-	"main/repository"
+	"log"
 	"time"
-    "go.mongodb.org/mongo-driver/mongo"
+
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // SeedData limpa e insere dados iniciais em cars e stations
@@ -44,58 +45,57 @@ func SeedData(stationRepo repository.StationRepository) {
 }
 
 func SeedRoutes(db *mongo.Database) {
-    routesCollection := db.Collection("routes")
+	routesCollection := db.Collection("routes")
 
-    // Rotas pré-configuradas
-    routes := []interface{}{
-        model.Route{
-            StartCity:  "A",
-            EndCity:    "C",
-            Waypoints:  []string{"B"}, // Rota completa A -> B -> C
-            Company:    "Empresa X",
-            DistanceKM: 300,
-        },
-        model.Route{
-            StartCity:  "A",
-            EndCity:    "B",
-            Waypoints:  []string{}, // Rota direta A -> B
-            Company:    "Empresa X",
-            DistanceKM: 150,
-        },
-		
+	// Rotas pré-configuradas
+	routes := []interface{}{
+		model.Route{
+			StartCity:  "A",
+			EndCity:    "C",
+			Waypoints:  []string{"B"}, // Rota completa A -> B -> C
+			Company:    "Empresa X",
+			DistanceKM: 300,
+		},
+		model.Route{
+			StartCity:  "A",
+			EndCity:    "B",
+			Waypoints:  []string{}, // Rota direta A -> B
+			Company:    "Empresa X",
+			DistanceKM: 150,
+		},
+
 		// Rotas de A para D
-        model.Route{
-            StartCity:  "A",
-            EndCity:    "D",
-            Waypoints:  []string{"B", "C"}, // Rota completa A -> B -> C -> D
-            Company:    "Empresa Y",
-            DistanceKM: 500,
-        },
-        model.Route{
-            StartCity:  "A",
-            EndCity:    "D",
-            Waypoints:  []string{"C"}, // Rota alternativa A -> C -> D
-            Company:    "Empresa Z",
-            DistanceKM: 400,
-        },
-        model.Route{
-            StartCity:  "A",
-            EndCity:    "D",
-            Waypoints:  []string{"B"}, // Rota alternativa A -> B -> D
-            Company:    "Empresa X",
-            DistanceKM: 450,
-        },
-		
-    }
+		model.Route{
+			StartCity:  "A",
+			EndCity:    "D",
+			Waypoints:  []string{"B", "C"}, // Rota completa A -> B -> C -> D
+			Company:    "Empresa Y",
+			DistanceKM: 500,
+		},
+		model.Route{
+			StartCity:  "A",
+			EndCity:    "D",
+			Waypoints:  []string{"C"}, // Rota alternativa A -> C -> D
+			Company:    "Empresa Z",
+			DistanceKM: 400,
+		},
+		model.Route{
+			StartCity:  "A",
+			EndCity:    "D",
+			Waypoints:  []string{"B"}, // Rota alternativa A -> B -> D
+			Company:    "Empresa X",
+			DistanceKM: 450,
+		},
+	}
 
-    // Insere as rotas no banco de dados
-    ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-    defer cancel()
+	// Insere as rotas no banco de dados
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-    _, err := routesCollection.InsertMany(ctx, routes)
-    if err != nil {
-        log.Fatalf("Erro ao inserir rotas: %v", err)
-    }
+	_, err := routesCollection.InsertMany(ctx, routes)
+	if err != nil {
+		log.Fatalf("Erro ao inserir rotas: %v", err)
+	}
 
-    log.Println("Rotas inseridas com sucesso!")
+	log.Println("Rotas inseridas com sucesso!")
 }

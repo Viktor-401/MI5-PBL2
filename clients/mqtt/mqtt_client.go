@@ -1,11 +1,11 @@
-package client
+package mqtt
 
 import (
 	"encoding/json"
 	"fmt"
 
 	// "log"
-	global "mqtt_config/types"
+	global "clients/types"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )

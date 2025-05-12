@@ -1,11 +1,11 @@
 package main
 
 import (
+	"api/controller"
+	"api/database"
+	"api/repository"
+	"api/usecase"
 	"fmt"
-	"main/controller"
-	"main/database"
-	"main/repository"
-	"main/usecase"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -26,17 +26,17 @@ func main() {
 	//database.SeedData(stationRepo)
 
 	// Popula o banco de dados com rotas
-    database.SeedRoutes(db) // Adicione esta linha para popular as rotas
+	database.SeedRoutes(db) // Adicione esta linha para popular as rotas
 
 	// Configura o repositório
-    routeRepo := repository.NewRouteRepository(db)
+	routeRepo := repository.NewRouteRepository(db)
 
-    // Configura o usecase
-    routeUsecase := usecase.NewRouteUsecase(routeRepo)
+	// Configura o usecase
+	routeUsecase := usecase.NewRouteUsecase(routeRepo)
 
-    // Configura o controlador
-    routeController := controller.NewRouteController(routeUsecase)
-	
+	// Configura o controlador
+	routeController := controller.NewRouteController(routeUsecase)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080" // Fallback para a porta 8080 se a variável de ambiente não estiver configurada
@@ -59,8 +59,8 @@ func main() {
 	server.POST("/stations/reserve", stationController.ReserveStation)
 
 	// Rotas relacionadas às rotas
-    server.POST("/routes", routeController.CreateRoute)
-    server.GET("/routes", routeController.GetRoutes)
+	server.POST("/routes", routeController.CreateRoute)
+	server.GET("/routes", routeController.GetRoutes)
 
 	server.Run(fmt.Sprintf(":%s", port))
 }

@@ -1,9 +1,9 @@
 package repository
 
 import (
+	"api/model"
 	"context"
 	"fmt"
-	"main/model"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

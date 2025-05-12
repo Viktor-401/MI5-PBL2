@@ -1,11 +1,10 @@
 package main
 
 import (
+	mqtt "api/mqtt"
+	types "api/types"
 	"encoding/json"
 	"fmt"
-	mqtt "main/mqtt"
-	types "main/types"
-	"strconv"
 
 	paho "github.com/eclipse/paho.mqtt.golang"
 )
@@ -16,7 +15,6 @@ type ServerState struct {
 }
 
 func main() {
-
 	// Cria o cliente MQTT
 	mqttClient, err := mqtt.NewMQTTClient(types.PORT, types.BROKER)
 	if err != nil {
@@ -33,149 +31,122 @@ func main() {
 		Mqtt:     mqttClient,
 	}
 
-	// Inscrição no tópico de consulta de rotas
-	topic := types.CarConsultTopic(serverIP, carState.Car.GetCarID())
-	carState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
-		// Funcao de callback para quando uma mensagem é recebida
-		// Deve retornar uma mensagem com payload ListRoutes
+	// Inscrição no tópico de nascimento do carro
+	topic := types.CarBirthTopic(serverState.ServerIP)
+	serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
+		// Funcao de callback
+		// adiciona o carro na database e se inscreve no tópico de consulta e reserva de rotas
+
+		mqttMessage := &types.MQTT_Message{}
+		json.Unmarshal(msg.Payload(), mqttMessage)
+
+		car := &types.Car{}
+		json.Unmarshal(mqttMessage.Message, car)
+
+		// TODO adicionar o carro na database
+
+		// Inscrição no tópico de consulta de rotas
+		topic = types.CarConsultTopic(serverIP, car.GetCarID())
+		serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
+			// Funcao de callback
+			// Deve retornar uma mensagem com payload ListRoutes
+			mqttMessage := &types.MQTT_Message{}
+			json.Unmarshal(msg.Payload(), mqttMessage)
+
+			routesMessage := &types.RoutesMessage{}
+			json.Unmarshal(mqttMessage.Message, routesMessage)
+
+			// city1, city2 := routesMessage.City1, routesMessage.City2
+			// TODO requisitar as rotas pela API e retornar na variavel routesList
+			routesList := types.RoutesList{
+				Routes: []types.Route{},
+			}
+
+			payload, _ := json.Marshal(routesList)
+
+			mqttMessage = &types.MQTT_Message{
+				Topic:   topic,
+				Message: payload,
+			}
+			serverState.Mqtt.Publish(*mqttMessage)
+		})
+
+		// Inscrição no tópico de reserva de rotas
+		topic = types.CarReserveTopic(serverIP, car.GetCarID())
+		serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
+			// Funcao de callback
+			// Deve retornar uma mensagem com payload ListRoutes
+			mqttMessage := &types.MQTT_Message{}
+			json.Unmarshal(msg.Payload(), mqttMessage)
+
+			routesMessage := &types.RoutesMessage{}
+			json.Unmarshal(mqttMessage.Message, routesMessage)
+
+			// city1, city2 := routesMessage.City1, routesMessage.City2
+			// TODO requisitar as rotas pela API e retornar na variavel routesList
+			routesList := types.RoutesList{
+				Routes: []types.Route{},
+			}
+
+			payload, _ := json.Marshal(routesList)
+
+			mqttMessage = &types.MQTT_Message{
+				Topic:   topic,
+				Message: payload,
+			}
+			serverState.Mqtt.Publish(*mqttMessage)
+		})
+
+		topic = types.CarSelectRouteTopic(serverIP, car.GetCarID())
+		serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
+			// Funcao de callback
+			// Deve retornar uma mensagem com payload ListRoutes
+			mqttMessage := &types.MQTT_Message{}
+			json.Unmarshal(msg.Payload(), mqttMessage)
+
+			route := &types.Route{}
+			json.Unmarshal(mqttMessage.Message, route)
+
+			// TODO reservar a rota pela API
+		})
+
+		topic = types.CarDeathTopic(serverIP)
+		serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
+			// Funcao de callback
+			// Retira o carro da database
+			mqttMessage := &types.MQTT_Message{}
+			json.Unmarshal(msg.Payload(), mqttMessage)
+
+			car := &types.Car{}
+			json.Unmarshal(mqttMessage.Message, car)
+
+			serverState.Mqtt.Client.Unsubscribe(
+				types.CarConsultTopic(serverIP, car.GetCarID()),
+				types.CarReserveTopic(serverIP, car.GetCarID()),
+				types.CarSelectRouteTopic(serverIP, car.GetCarID()),
+				types.CarDeathTopic(serverIP),
+			)
+
+			// TODO retirar o carro da database
+		})
 	})
 
-	// Inscrição no tópico de reserva de rotas
-	topic = types.CarReserveTopic(serverIP, carState.Car.GetCarID())
-	carState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
-		// Funcao de callback para quando uma mensagem é recebida
-		// Deve retornar uma mensagem com payload ListRoutes
+	// Inscrição no tópico de nascimento de um posto
+	topic = types.StationBirthTopic(serverIP)
+	serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
+		// Funcao de callback
+		// Adiciona o posto na database
+
+	})
+
+	// Inscrição no tópico de nascimento de um posto
+	topic = types.StationDeathTopic(serverIP)
+	serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
+		// Funcao de callback
+		// Retira o posto da database
 	})
 
 	// Mantem o cliente MQTT ativo até o usuário encerrar
-	fmt.Println("Enter para encerra o posto")
+	fmt.Println("Enter para encerra o server")
 	fmt.Scanln()
-	// Mensagem de morte do servidor, que informa o seu subscribers que o servidor está offline
-	message, err := serverState.DeathMessage()
-	if err != nil {
-		fmt.Println("Error creating death message:", err)
-		return
-	}
-	serverState.Mqtt.Publish(message)
-}
-
-// Retorna a mensagem de morte do carro, que informa o servidor que o carro está offline
-func (s *ServerState) DeathMessage() (types.MQTT_Message, error) {
-	topic := types.StationDeathTopic(s.ServerIP)
-
-	payload, err := json.Marshal(s)
-	if err != nil {
-		return types.MQTT_Message{}, err
-	}
-
-	return types.MQTT_Message{
-		Topic:   topic,
-		Message: payload,
-	}, nil
-}
-
-// Retorna a mensagem de consulta de rotas para ser enviada ao servidor via MQTT
-func (s *ServerState) ConsultRouteMessage(city1 string, city2 string) (types.MQTT_Message, error) {
-	topic := types.CarConsultTopic(s.ServerIP, s.Car.GetCarID())
-
-	consultRoute := types.RoutesMessage{
-		City1: city1,
-		City2: city2,
-	}
-
-	payload, err := json.Marshal(consultRoute)
-	if err != nil {
-		return types.MQTT_Message{}, err
-	}
-
-	return types.MQTT_Message{
-		Topic:   topic,
-		Message: payload,
-	}, nil
-}
-
-// Retorna a mensagem de reserva de rotas para ser enviada ao servidor via MQTT
-func (s *ServerState) ReserveRouteMessage(city1 string, city2 string) (types.MQTT_Message, error) {
-	topic := types.CarReserveTopic(s.ServerIP, s.Car.GetCarID())
-
-	reserveRoute := types.RoutesMessage{
-		City1: city1,
-		City2: city2,
-	}
-
-	payload, err := json.Marshal(reserveRoute)
-	if err != nil {
-		return types.MQTT_Message{}, err
-	}
-
-	return types.MQTT_Message{
-		Topic:   topic,
-		Message: payload,
-	}, nil
-}
-
-// Retorna a mensagem de reserva de rotas para ser enviada ao servidor via MQTT
-func (s *ServerState) SelectRouteMessage(route types.Route) (types.MQTT_Message, error) {
-	topic := types.CarReserveTopic(s.ServerIP, s.Car.GetCarID())
-
-	payload, err := json.Marshal(route)
-	if err != nil {
-		return types.MQTT_Message{}, err
-	}
-
-	return types.MQTT_Message{
-		Topic:   topic,
-		Message: payload,
-	}, nil
-}
-
-// Recebe as cidades de origem e destino através do terminal
-func CityInput() (string, string) {
-	city1, city2 := "", ""
-	for {
-		fmt.Println("Insira a primeira cidade (A, B, C, D, E ou F):")
-		fmt.Scanln(&city1)
-
-		fmt.Println("Insira a segunda cidade (A, B, C, D, E ou F):")
-		fmt.Scanln(&city2)
-
-		if city1 == city2 {
-			fmt.Println("As cidades devem ser diferentes.")
-			continue
-		}
-		break
-	}
-
-	return city1, city2
-}
-
-func UnmarshalListRoutes(msg paho.Message) types.RoutesList {
-	// Deserializa a mensagem recebida
-	routesMessage := &types.RoutesList{}
-	err := json.Unmarshal(msg.Payload(), &routesMessage)
-	if err != nil {
-		fmt.Println("Error unmarshalling message:", err)
-		return types.RoutesList{}
-	}
-
-	// Lista as rotas no terminal
-	for i, route := range routesMessage.Routes {
-		fmt.Printf("%d: %s -> %s\n", i, route.StartCity, route.EndCity)
-	}
-
-	return *routesMessage
-}
-
-func UnmarshalListRoutesSelect(msg paho.Message) (types.Route, error) {
-	routesMessage := UnmarshalListRoutes(msg)
-	fmt.Println("Escolha uma rota para reservar:")
-	selectedRoute := ""
-	fmt.Scanln(&selectedRoute)
-
-	selectedRouteInt, err := strconv.Atoi(selectedRoute)
-	if err != nil || selectedRouteInt < 0 || selectedRouteInt >= len(routesMessage.Routes) {
-		return types.Route{}, fmt.Errorf("invalid route selection")
-	}
-
-	return routesMessage.Routes[selectedRouteInt], nil
 }

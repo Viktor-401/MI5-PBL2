@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"main/usecase"
+	"api/usecase"
 	"net/http"
 	"strconv"
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	// "log"
-	global "mqtt_config/types"
+	global "api/types"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )

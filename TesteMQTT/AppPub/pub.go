@@ -33,6 +33,5 @@ func main() {
 		mqtt.Publish(reserveMessage)
 		fmt.Println("Message published")
 		time.Sleep(1 * time.Second)
-
 	}
 }

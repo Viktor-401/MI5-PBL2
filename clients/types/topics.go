@@ -9,6 +9,7 @@ type Topics int
 const (
 	Consult Topics = iota
 	Reserve
+	Select
 	Birth
 	Death
 )
@@ -16,6 +17,7 @@ const (
 var TopicNames = map[Topics]string{
 	Consult: "consult",
 	Reserve: "reserve",
+	Select:  "select",
 	Birth:   "birth",
 	Death:   "death",
 }
@@ -99,5 +101,10 @@ func CarConsultTopic(serverIP string, CarID int) string {
 
 func CarReserveTopic(serverIP string, CarID int) string {
 	// Reserve a Car in serverIP with CarID
-	return Reserve.String() + StationClientType.String() + serverIP + fmt.Sprintf("%d", CarID)
+	return Reserve.String() + CarClientType.String() + serverIP + fmt.Sprintf("%d", CarID)
+}
+
+func CarSelectRouteTopic(serverIP string, CarID int) string {
+	// Select a route for a Car in serverIP with CarID
+	return Select.String() + CarClientType.String() + serverIP + fmt.Sprintf("%d", CarID)
 }
