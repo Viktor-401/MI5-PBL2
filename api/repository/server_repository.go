@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"api/model"
 	"context"
 	"fmt"
 	"time"
@@ -29,14 +30,28 @@ func (sr *ServerRepository) RegisterOrUpdateServer(ctx context.Context, company 
 			"timestamp": time.Now(),
 		},
 	}
-	upsert := true
-	opts := options.Update().SetUpsert(upsert) // Usa o pacote correto para criar as opções de atualização
+	opts := options.Update().SetUpsert(true)
 
 	_, err := sr.collection.UpdateOne(ctx, filter, update, opts)
 	if err != nil {
 		return fmt.Errorf("erro ao registrar ou atualizar servidor: %w", err)
 	}
 	return nil
+}
+
+func (sr *ServerRepository) GetServersByCompany(ctx context.Context, company string) ([]model.Server, error) {
+	filter := bson.M{"company": company}
+	cursor, err := sr.collection.Find(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao buscar servidores: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var servers []model.Server
+	if err := cursor.All(ctx, &servers); err != nil {
+		return nil, fmt.Errorf("erro ao decodificar servidores: %w", err)
+	}
+	return servers, nil
 }
 
 // Obtém a lista de servidores registrados

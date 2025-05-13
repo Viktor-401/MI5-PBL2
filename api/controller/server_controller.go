@@ -18,48 +18,44 @@ func NewServerController(usecase usecase.ServerUsecase) ServerController {
 	}
 }
 
-// func (sc *ServerController) RegisterServer(ctx *gin.Context) {
-// 	var request struct {
-// 		Company  string `json:"company"`
-// 		ServerIP string `json:"server_ip"`
-// 	}
+func (sc *ServerController) RegisterServer(ctx *gin.Context) {
+	var request struct {
+		Company  string `json:"company"`
+		ServerIP string `json:"server_ip"`
+	}
 
-// 	if err := ctx.BindJSON(&request); err != nil {
-// 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-// 		return
-// 	}
+	if err := ctx.BindJSON(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-// 	err := sc.serverUsecase.RegisterOrUpdateServer(context.Background(), request.Company, request.ServerIP)
-// 	if err != nil {
-// 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-// 		return
-// 	}
+	err := sc.serverUsecase.RegisterOrUpdateServer(request.Company, request.ServerIP)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-// 	ctx.JSON(http.StatusOK, gin.H{"message": "Servidor registrado com sucesso"})
-// }
+	ctx.JSON(http.StatusOK, gin.H{"message": "Servidor registrado com sucesso"})
+}
 
-// // Endpoint para obter a lista de servidores registrados
-// func (sc *ServerController) GetRegisteredServers(ctx *gin.Context) {
-// 	servers, err := sc.serverUsecase.GetRegisteredServers(context.Background())
-// 	if err != nil {
-// 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-// 		return
-// 	}
+func (sc *ServerController) GetServersByCompany(ctx *gin.Context) {
+	// Obtém o parâmetro "company" da query string
+	company := ctx.Query("company")
+	if company == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "company name is required"})
+		return
+	}
 
-// 	ctx.JSON(http.StatusOK, gin.H{"servers": servers})
-// }
+	// Chama o usecase para buscar os servidores pela companhia
+	servers, err := sc.serverUsecase.GetServersByCompany(company)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-// // Endpoint para remover servidores inativos
-// func (sc *ServerController) RemoveInactiveServers(ctx *gin.Context) {
-// 	threshold := 10 * time.Minute // Exemplo: servidores inativos por mais de 10 minutos
-// 	err := sc.serverUsecase.RemoveInactiveServers(context.Background(), threshold)
-// 	if err != nil {
-// 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-// 		return
-// 	}
-
-// 	ctx.JSON(http.StatusOK, gin.H{"message": "Servidores inativos removidos com sucesso"})
-// }
+	// Retorna os servidores encontrados
+	ctx.JSON(http.StatusOK, servers)
+}
 
 func (sc *ServerController) GetStationsFromServer(ctx *gin.Context) {
 	serverURL := ctx.Query("server_url")
@@ -74,7 +70,7 @@ func (sc *ServerController) GetStationsFromServer(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"stations": stations})
+	ctx.JSON(http.StatusOK, stations)
 }
 
 func (sc *ServerController) ReserveStationOnServer(ctx *gin.Context) {

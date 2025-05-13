@@ -5,6 +5,7 @@ import (
 	types "clients/types"
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	paho "github.com/eclipse/paho.mqtt.golang"
 )
@@ -57,27 +58,27 @@ func main() {
 	})
 
 	// Inscrição no tópico de reserva de rotas
-	// topic = types.CarReserveTopic(serverIP, carState.Car.GetCarID())
-	// carState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
-	// 	// Funcao de callback para quando uma mensagem é recebida
-	// 	route, err := UnmarshalListRoutesSelect(msg)
-	// 	if err != nil {
-	// 		fmt.Println("Error unmarshalling route selection:", err)
-	// 		return
-	// 	}
+	topic = types.CarReserveTopic(serverIP, carState.Car.GetCarID())
+	carState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
+		// Funcao de callback para quando uma mensagem é recebida
+		route, err := UnmarshalListRoutesSelect(msg)
+		if err != nil {
+			fmt.Println("Error unmarshalling route selection:", err)
+			return
+		}
 
-	// 	message, err := carState.SelectRouteMessage(carState.Car, route)
-	// 	if err != nil {
-	// 		fmt.Println("Error creating reserve route message:", err)
-	// 		return
-	// 	}
-	// 	err = carState.Mqtt.Publish(message)
-	// 	if err != nil {
-	// 		fmt.Println("Error publishing reserve route message:", err)
-	// 		return
-	// 	}
-	// 	waitChan <- true
-	// })
+		message, err := carState.SelectRouteMessage(carState.Car, route)
+		if err != nil {
+			fmt.Println("Error creating reserve route message:", err)
+			return
+		}
+		err = carState.Mqtt.Publish(message)
+		if err != nil {
+			fmt.Println("Error publishing reserve route message:", err)
+			return
+		}
+		waitChan <- true
+	})
 
 	exit := false
 	for !exit {
@@ -102,24 +103,23 @@ func main() {
 				fmt.Println("Error publishing consult route message:", err)
 				return
 			}
-		}
-		// } else if action == 2 {
-		// 	city1, city2 := CityInput()
+		} else if action == 2 {
+			city1, city2 := CityInput()
 
-		// 	// Envia a mensagem de reserva de rotas
-		// 	message, err := carState.ReserveRouteMessage(city1, city2)
-		// 	if err != nil {
-		// 		fmt.Println("Error creating reserve route message:", err)
-		// 		return
-		// 	}
-		// 	err = carState.Mqtt.Publish(message)
-		// 	if err != nil {
-		// 		fmt.Println("Error publishing reserve route message:", err)
-		// 		return
-		// 	}
-		// } else {
-		// fmt.Println("Ação inválida. Tente novamente.")
-		// }
+			// Envia a mensagem de reserva de rotas
+			message, err := carState.ReserveRouteMessage(city1, city2)
+			if err != nil {
+				fmt.Println("Error creating reserve route message:", err)
+				return
+			}
+			err = carState.Mqtt.Publish(message)
+			if err != nil {
+				fmt.Println("Error publishing reserve route message:", err)
+				return
+			}
+		} else {
+			fmt.Println("Ação inválida. Tente novamente.")
+		}
 		<-waitChan
 	}
 
@@ -238,20 +238,6 @@ func CityInput() (string, string) {
 			fmt.Println("As cidades devem ser diferentes.")
 			continue
 		}
-		// }func UnmarshalListRoutesSelect(msg paho.Message) (types.Route, error) {
-		// 	routesMessage := UnmarshalListRoutes(msg)
-		// 	fmt.Println("Escolha uma rota para reservar:")
-		// 	selectedRoute := ""
-		// 	fmt.Scanln(&selectedRoute)
-
-		// 	selectedRouteInt, err := strconv.Atoi(selectedRoute)
-		// 	if err != nil || selectedRouteInt < 0 || selectedRouteInt >= len(routesMessage.Routes) {
-		// 		return types.Route{}, fmt.Errorf("invalid route selection")
-		// 	}
-
-		// 	return routesMessage.Routes[selectedRouteInt], nil
-		// }
-
 		break
 	}
 
@@ -278,22 +264,21 @@ func UnmarshalListRoutes(msg paho.Message) []types.Route {
 	// Lista as rotas no terminal
 	for _, route := range routesMessage {
 		route.PrintRoute()
-		//fmt.Printf("%d: %s -> %s\n", i, route.StartCity, route.EndCity)
 	}
 
 	return routesMessage
 }
 
-// func UnmarshalListRoutesSelect(msg paho.Message) (types.Route, error) {
-// 	routesMessage := UnmarshalListRoutes(msg)
-// 	fmt.Println("Escolha uma rota para reservar:")
-// 	selectedRoute := ""
-// 	fmt.Scanln(&selectedRoute)
+func UnmarshalListRoutesSelect(msg paho.Message) (types.Route, error) {
+	routesMessage := UnmarshalListRoutes(msg)
+	fmt.Println("Escolha uma rota para reservar:")
+	selectedRoute := ""
+	fmt.Scanln(&selectedRoute)
 
-// 	selectedRouteInt, err := strconv.Atoi(selectedRoute)
-// 	if err != nil || selectedRouteInt < 0 || selectedRouteInt >= len(routesMessage.Routes) {
-// 		return types.Route{}, fmt.Errorf("invalid route selection")
-// 	}
+	selectedRouteInt, err := strconv.Atoi(selectedRoute)
+	if err != nil || selectedRouteInt < 0 || selectedRouteInt >= len(routesMessage) {
+		return types.Route{}, fmt.Errorf("invalid route selection")
+	}
 
-// 	return routesMessage.Routes[selectedRouteInt], nil
-// }
+	return routesMessage[selectedRouteInt], nil
+}

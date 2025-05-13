@@ -4,6 +4,7 @@ import (
 	"api/model"
 	"api/repository"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,31 +21,22 @@ func NewServerUsecase(serverRepo repository.ServerRepository) ServerUsecase {
 	}
 }
 
-// // Registra ou atualiza um servidor
-// func (su *ServerUsecase) RegisterOrUpdateServer(ctx context.Context, company string, serverIP string) error {
-// 	err = su.serverRepo.RegisterOrUpdateServer(ctx, company, serverIP)
-// }
+func (su *ServerUsecase) RegisterOrUpdateServer(company string, serverIP string) error {
+	if company == "" || serverIP == "" {
+		return fmt.Errorf("company and serverIP are required")
+	}
 
-// // Obtém a lista de servidores registrados
-// func (su *ServerUsecase) GetRegisteredServers(ctx context.Context) ([]model.Server, error) {
-// 	ips, err := su.serverRepo.GetRegisteredServers(ctx)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("erro ao obter servidores registrados: %w", err)
-// 	}
+	// Chama o repositório para registrar ou atualizar o servidor
+	err := su.serverRepo.RegisterOrUpdateServer(context.Background(), company, serverIP)
+	if err != nil {
+		return fmt.Errorf("erro ao registrar ou atualizar servidor: %w", err)
+	}
 
-// 	servers := []model.Server{}
-// 	for _, ip := range ips {
-// 		servers = append(servers, model.Server{
-// 			ServerIP: ip,
-// 		})
-// 	}
-// 	return servers, nil
-// }
-
-// // Remove servidores inativos
-// func (su *ServerUsecase) RemoveInactiveServers(ctx context.Context, threshold time.Duration) error {
-// 	return su.serverRepo.RemoveInactiveServers(ctx, threshold)
-// }
+	return nil
+}
+func (su *ServerUsecase) GetServersByCompany(company string) ([]model.Server, error) {
+	return su.serverRepo.GetServersByCompany(context.Background(), company)
+}
 
 // Consulta estações disponíveis em outro servidor
 func (su *ServerUsecase) GetStationsFromServer(url string) ([]model.Station, error) {

@@ -115,8 +115,22 @@ func CarSelectRouteTopic(serverIP string, CarID int) string {
 }
 
 // SERVER TOPICS
+func ServerBirthTopic(serverIP string) string {
+	// Birth of a server in serverIP
+	return Birth.String() + CompanyClientType.String()
+}
+
+func ResponseServerBirthTopic(serverIP string) string {
+	// Birth of a server in serverIP
+	return "response" + Birth.String() + CompanyClientType.String()
+}
 
 func ResponseCarConsultTopic(serverIP string, CarID int) string {
 	// Consult a Car in serverIP with CarID
 	return "response" + Consult.String() + CarClientType.String() + serverIP + fmt.Sprintf("%d", CarID)
+}
+
+func ResponseCarReserveTopic(serverIP string, CarID int) string {
+	// Reserve a Car in serverIP with CarID
+	return "response" + Reserve.String() + CarClientType.String() + serverIP + fmt.Sprintf("%d", CarID)
 }

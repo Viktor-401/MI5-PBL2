@@ -45,7 +45,7 @@ func main() {
 	server.GET("/stations", stationController.GetAllStations)
 
 	// Rotas relacionadas à comunicação entre servidores
-	// server.POST("/servers/register", serverController.RegisterServer)
+	server.POST("/servers/register", serverController.RegisterServer)
 	// server.GET("/servers", serverController.GetRegisteredServers)
 	// server.DELETE("/servers/inactive", serverController.RemoveInactiveServers)
 
@@ -58,11 +58,27 @@ func main() {
 	server.GET("/routes", routeController.GetRoutes)
 
 	// Inicia o servidor MQTT
-	mqtt_server.MqttMain()
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080" // Fallback para a porta 8080 se a variável de ambiente não estiver configurada
 	}
+	var company = ""
+	fmt.Println("Insira a empresa do Servidor:")
+	fmt.Scanln(&company)
+
+	go mqtt_server.MqttMain(company, port)
 	server.Run(fmt.Sprintf(":%s", port))
+
+	// var wg sync.WaitGroup
+	// wg.Add(1)
+
+	// go func() {
+	// 	defer wg.Done()
+	// 	server.Run(fmt.Sprintf(":%s", port))
+	// }()
+
+	// wg.Wait()
+	// mqtt_server.MqttMain(company, port)
+
 }
