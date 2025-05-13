@@ -2,10 +2,8 @@ package controller
 
 import (
 	"api/usecase"
-	"context"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,48 +18,48 @@ func NewServerController(usecase usecase.ServerUsecase) ServerController {
 	}
 }
 
-func (sc *ServerController) RegisterServer(ctx *gin.Context) {
-	var request struct {
-		Company  string `json:"company"`
-		ServerIP string `json:"server_ip"`
-	}
+// func (sc *ServerController) RegisterServer(ctx *gin.Context) {
+// 	var request struct {
+// 		Company  string `json:"company"`
+// 		ServerIP string `json:"server_ip"`
+// 	}
 
-	if err := ctx.BindJSON(&request); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+// 	if err := ctx.BindJSON(&request); err != nil {
+// 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// 		return
+// 	}
 
-	err := sc.serverUsecase.RegisterOrUpdateServer(context.Background(), request.Company, request.ServerIP)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+// 	err := sc.serverUsecase.RegisterOrUpdateServer(context.Background(), request.Company, request.ServerIP)
+// 	if err != nil {
+// 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+// 		return
+// 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Servidor registrado com sucesso"})
-}
+// 	ctx.JSON(http.StatusOK, gin.H{"message": "Servidor registrado com sucesso"})
+// }
 
-// Endpoint para obter a lista de servidores registrados
-func (sc *ServerController) GetRegisteredServers(ctx *gin.Context) {
-	servers, err := sc.serverUsecase.GetRegisteredServers(context.Background())
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+// // Endpoint para obter a lista de servidores registrados
+// func (sc *ServerController) GetRegisteredServers(ctx *gin.Context) {
+// 	servers, err := sc.serverUsecase.GetRegisteredServers(context.Background())
+// 	if err != nil {
+// 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+// 		return
+// 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"servers": servers})
-}
+// 	ctx.JSON(http.StatusOK, gin.H{"servers": servers})
+// }
 
-// Endpoint para remover servidores inativos
-func (sc *ServerController) RemoveInactiveServers(ctx *gin.Context) {
-	threshold := 10 * time.Minute // Exemplo: servidores inativos por mais de 10 minutos
-	err := sc.serverUsecase.RemoveInactiveServers(context.Background(), threshold)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+// // Endpoint para remover servidores inativos
+// func (sc *ServerController) RemoveInactiveServers(ctx *gin.Context) {
+// 	threshold := 10 * time.Minute // Exemplo: servidores inativos por mais de 10 minutos
+// 	err := sc.serverUsecase.RemoveInactiveServers(context.Background(), threshold)
+// 	if err != nil {
+// 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+// 		return
+// 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Servidores inativos removidos com sucesso"})
-}
+// 	ctx.JSON(http.StatusOK, gin.H{"message": "Servidores inativos removidos com sucesso"})
+// }
 
 func (sc *ServerController) GetStationsFromServer(ctx *gin.Context) {
 	serverURL := ctx.Query("server_url")

@@ -113,3 +113,10 @@ func CarSelectRouteTopic(serverIP string, CarID int) string {
 	// Select a route for a Car in serverIP with CarID
 	return Select.String() + CarClientType.String() + serverIP + fmt.Sprintf("%d", CarID)
 }
+
+// SERVER TOPICS
+
+func ResponseCarConsultTopic(serverIP string, CarID int) string {
+	// Consult a Car in serverIP with CarID
+	return "response" + Consult.String() + CarClientType.String() + serverIP + fmt.Sprintf("%d", CarID)
+}

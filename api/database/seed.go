@@ -18,11 +18,11 @@ func SeedData(stationRepo repository.StationRepository) {
 
 	// Dados iniciais para estações
 	stations := []model.Station{
-		// {StationID: 1, CoordX: 2, CoordY: 2, InUseBy: 0, Company: "A"},
-		// {StationID: 10, CoordX: 50, CoordY: 100, InUseBy: 0, Company: "A"},
-		// {StationID: 11, CoordX: 25, CoordY: 50, InUseBy: 3, Company: "B"},
-		// {StationID: 2, CoordX: 3, CoordY: 3, InUseBy: 0, Company: "B"},
-		// {StationID: 3, CoordX: 4, CoordY: 4, InUseBy: 0, Company: "C"},
+		{StationID: 1, InUseBy: -1, Company: "A"},
+		{StationID: 5, InUseBy: -1, Company: "A"},
+		{StationID: 11, InUseBy: -1, Company: "B"},
+		{StationID: 2, InUseBy: -1, Company: "B"},
+		{StationID: 3, InUseBy: -1, Company: "C"},
 	}
 
 	// Limpa a coleção de estações

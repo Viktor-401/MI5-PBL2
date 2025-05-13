@@ -59,5 +59,5 @@ func (rc *RouteController) GetRoutes(ctx *gin.Context) {
 	}
 
 	// Retorna as rotas encontradas
-	ctx.JSON(http.StatusOK, gin.H{"routes": routes})
+	ctx.JSON(http.StatusOK, routes)
 }

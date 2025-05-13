@@ -25,6 +25,7 @@ func main() {
 
 	// Configura o repositório
 	stationRepo := repository.NewStationRepository(db)
+	database.SeedData(stationRepo)
 	serverRepo := repository.NewServerRepository(db)
 	routeRepo := repository.NewRouteRepository(db)
 
@@ -44,9 +45,9 @@ func main() {
 	server.GET("/stations", stationController.GetAllStations)
 
 	// Rotas relacionadas à comunicação entre servidores
-	server.POST("/servers/register", serverController.RegisterServer)
-	server.GET("/servers", serverController.GetRegisteredServers)
-	server.DELETE("/servers/inactive", serverController.RemoveInactiveServers)
+	// server.POST("/servers/register", serverController.RegisterServer)
+	// server.GET("/servers", serverController.GetRegisteredServers)
+	// server.DELETE("/servers/inactive", serverController.RemoveInactiveServers)
 
 	server.GET("/server/stations", serverController.GetStationsFromServer)
 	server.POST("/server/reserve", serverController.ReserveStationOnServer)
@@ -57,7 +58,7 @@ func main() {
 	server.GET("/routes", routeController.GetRoutes)
 
 	// Inicia o servidor MQTT
-	go mqtt_server.MqttMain()
+	mqtt_server.MqttMain()
 
 	port := os.Getenv("PORT")
 	if port == "" {

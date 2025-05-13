@@ -104,6 +104,11 @@ func CarConsultTopic(serverIP string, CarID int) string {
 	return Consult.String() + CarClientType.String() + serverIP + fmt.Sprintf("%d", CarID)
 }
 
+func ResponseCarConsultTopic(serverIP string, CarID int) string {
+	// Consult a Car in serverIP with CarID
+	return "response" + Consult.String() + CarClientType.String() + serverIP + fmt.Sprintf("%d", CarID)
+}
+
 func CarReserveTopic(serverIP string, CarID int) string {
 	// Reserve a Car in serverIP with CarID
 	return Reserve.String() + CarClientType.String() + serverIP + fmt.Sprintf("%d", CarID)

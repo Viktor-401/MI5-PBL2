@@ -6,6 +6,9 @@ import (
 	types "api/types"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
 
 	paho "github.com/eclipse/paho.mqtt.golang"
 )
@@ -49,27 +52,63 @@ func MqttMain() {
 		// Inscrição no tópico de consulta de rotas
 		topic = model.CarConsultTopic(serverIP, car.GetCarID())
 		serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
-			// Funcao de callback
-			// Deve retornar uma mensagem com payload ListRoutes
+			// Função de callback
 			mqttMessage := &model.MQTT_Message{}
-			json.Unmarshal(msg.Payload(), mqttMessage)
+			if err := json.Unmarshal(msg.Payload(), mqttMessage); err != nil {
+				log.Printf("Erro ao decodificar MQTT_Message: %v", err)
+				return
+			}
 
 			routesMessage := &model.RoutesMessage{}
-			json.Unmarshal(mqttMessage.Message, routesMessage)
-
-			// city1, city2 := routesMessage.City1, routesMessage.City2
-			// TODO requisitar as rotas pela API e retornar na variavel routesList
-			routesList := model.RoutesList{
-				Routes: []model.Route{},
+			if err := json.Unmarshal(mqttMessage.Message, routesMessage); err != nil {
+				log.Printf("Erro ao decodificar RoutesMessage: %v", err)
+				return
 			}
 
-			payload, _ := json.Marshal(routesList)
+			city1, city2 := routesMessage.City1, routesMessage.City2
+			url := "http://172.16.103.10:8081/routes?start_city=" + city1 + "&end_city=" + city2
 
+			// Realiza a requisição HTTP
+			resp, err := http.Get(url)
+			if err != nil {
+				log.Printf("Erro na requisição GET para %s: %v", url, err)
+				return
+			}
+			defer resp.Body.Close() // Certifique-se de fechar o corpo da resposta
+
+			// Verifique se o status HTTP é 200 OK
+			if resp.StatusCode != http.StatusOK {
+				log.Printf("Erro: status de resposta %d para %s", resp.StatusCode, url)
+				return
+			}
+
+			// Lê o corpo da resposta
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				log.Printf("Erro ao ler corpo da resposta: %v", err)
+				return
+			}
+
+			// Deserializa a resposta no formato esperado
+			var unmarshal []model.Route
+			if err := json.Unmarshal(body, &unmarshal); err != nil {
+				log.Printf("Erro ao deserializar o corpo da resposta: %v", err)
+				return
+			}
+
+			// Imprime a resposta (útil para debugging)
+			fmt.Println(unmarshal)
+
+			// Cria a mensagem MQTT de resposta
 			mqttMessage = &model.MQTT_Message{
-				Topic:   model.CarConsultTopic(serverIP, car.GetCarID()),
-				Message: payload,
+				Topic:   model.ResponseCarConsultTopic(serverIP, car.GetCarID()),
+				Message: body,
 			}
-			serverState.Mqtt.Publish(*mqttMessage)
+
+			// Publica a mensagem MQTT de volta
+			if err := serverState.Mqtt.Publish(*mqttMessage); err != nil {
+				log.Printf("Erro ao publicar a mensagem MQTT: %v", err)
+			}
 		})
 
 		// Inscrição no tópico de reserva de rotas
@@ -85,6 +124,7 @@ func MqttMain() {
 
 			// city1, city2 := routesMessage.City1, routesMessage.City2
 			// TODO requisitar as rotas pela API e retornar na variavel routesList
+
 			routesList := model.RoutesList{
 				Routes: []model.Route{},
 			}

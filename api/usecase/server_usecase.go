@@ -4,12 +4,10 @@ import (
 	"api/model"
 	"api/repository"
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 )
 
 type ServerUsecase struct {
@@ -22,31 +20,31 @@ func NewServerUsecase(serverRepo repository.ServerRepository) ServerUsecase {
 	}
 }
 
-// Registra ou atualiza um servidor
-func (su *ServerUsecase) RegisterOrUpdateServer(ctx context.Context, company string, serverIP string) error {
-	err = su.serverRepo.RegisterOrUpdateServer(ctx, company, serverIP)
-}
+// // Registra ou atualiza um servidor
+// func (su *ServerUsecase) RegisterOrUpdateServer(ctx context.Context, company string, serverIP string) error {
+// 	err = su.serverRepo.RegisterOrUpdateServer(ctx, company, serverIP)
+// }
 
-// Obtém a lista de servidores registrados
-func (su *ServerUsecase) GetRegisteredServers(ctx context.Context) ([]model.Server, error) {
-	ips, err := su.serverRepo.GetRegisteredServers(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("erro ao obter servidores registrados: %w", err)
-	}
+// // Obtém a lista de servidores registrados
+// func (su *ServerUsecase) GetRegisteredServers(ctx context.Context) ([]model.Server, error) {
+// 	ips, err := su.serverRepo.GetRegisteredServers(ctx)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("erro ao obter servidores registrados: %w", err)
+// 	}
 
-	servers := []model.Server{}
-	for _, ip := range ips {
-		servers = append(servers, model.Server{
-			ServerIP: ip,
-		})
-	}
-	return servers, nil
-}
+// 	servers := []model.Server{}
+// 	for _, ip := range ips {
+// 		servers = append(servers, model.Server{
+// 			ServerIP: ip,
+// 		})
+// 	}
+// 	return servers, nil
+// }
 
-// Remove servidores inativos
-func (su *ServerUsecase) RemoveInactiveServers(ctx context.Context, threshold time.Duration) error {
-	return su.serverRepo.RemoveInactiveServers(ctx, threshold)
-}
+// // Remove servidores inativos
+// func (su *ServerUsecase) RemoveInactiveServers(ctx context.Context, threshold time.Duration) error {
+// 	return su.serverRepo.RemoveInactiveServers(ctx, threshold)
+// }
 
 // Consulta estações disponíveis em outro servidor
 func (su *ServerUsecase) GetStationsFromServer(url string) ([]model.Station, error) {
