@@ -43,7 +43,9 @@ func main() {
 	// Rotas relacionadas às estações
 	server.POST("/stations", stationController.CreateStation)
 	server.GET("/stations", stationController.GetAllStations)
+	server.GET("/stations/:id", stationController.GetStationByID)
 	server.POST("/stations/remove", stationController.RemoveStation)
+	server.POST("/stations/reserve", stationController.ReserveStation)
 
 	// Rotas relacionadas à comunicação entre servidores
 	server.POST("/servers/register", serverController.RegisterServer)
@@ -52,7 +54,6 @@ func main() {
 
 	server.GET("/server/stations", serverController.GetStationsFromServer)
 	server.POST("/server/reserve", serverController.ReserveStationOnServer)
-	server.POST("/stations/reserve", stationController.ReserveStation)
 
 	// Rotas relacionadas às rotas
 	server.POST("/routes", routeController.CreateRoute)

@@ -44,6 +44,21 @@ func (su *StationUsecase) GetAllStations(ctx context.Context) ([]model.Station, 
 	return stations, nil
 }
 
+func (su *StationUsecase) GetStationByID(ctx context.Context, stationID int) (model.Station, error) {
+	stations, err := su.repository.GetAllStations(ctx)
+	if err != nil {
+		return model.Station{}, fmt.Errorf("erro ao buscar estações: %w", err)
+	}
+
+	for _, station := range stations {
+		if station.StationID == stationID {
+			return station, nil
+		}
+	}
+
+	return model.Station{}, fmt.Errorf("estação com ID %d não encontrada", stationID)
+}
+
 func (su *StationUsecase) ReserveStation(ctx context.Context, stationID int, carID int) error {
 	// Busca a estação pelo ID
 	stations, err := su.repository.GetAllStations(ctx)

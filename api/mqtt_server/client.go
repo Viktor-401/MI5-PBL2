@@ -253,8 +253,6 @@ func MqttMain(serverCompany string, port string) {
 			return
 		}
 
-		fmt.Printf("Mensagem recebida no tópico %s: %s\n", msg.Topic(), string(updatedPayload))
-
 		// Envia a requisição HTTP com o payload atualizado
 		url := fmt.Sprintf("http://%s:%s/stations", serverState.ServerIP, serverState.Port)
 		SendHttpPostRequest(url, updatedPayload)
@@ -277,8 +275,6 @@ func MqttMain(serverCompany string, port string) {
 				log.Printf("Erro ao decodificar StationID: %v", err)
 				return
 			}
-
-			log.Printf("Removendo estação com ID %d da base de dados", stationID)
 
 			// Cria o payload para a requisição HTTP
 			payload, err := json.Marshal(map[string]int{"station_id": stationID})
@@ -494,4 +490,38 @@ func SendHttpPostRequest(url string, payload []byte) {
 		log.Printf("Erro: status %d, resposta: %s", resp.StatusCode, string(body))
 		return
 	}
+}
+
+func SendPrepareRequest(url string, payload interface{}) (bool, error) {
+	jsonPayload, _ := json.Marshal(payload)
+	resp, err := http.Post(url+"/prepare", "application/json", bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode == http.StatusOK, nil
+}
+
+func SendCommitRequest(url string) error {
+	resp, err := http.Post(url+"/commit", "application/json", nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("commit failed for %s", url)
+	}
+	return nil
+}
+
+func SendAbortRequest(url string) error {
+	resp, err := http.Post(url+"/abort", "application/json", nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("abort failed for %s", url)
+	}
+	return nil
 }
