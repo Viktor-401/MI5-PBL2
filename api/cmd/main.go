@@ -25,7 +25,7 @@ func main() {
 
 	// Configura o repositório
 	stationRepo := repository.NewStationRepository(db)
-	database.SeedData(stationRepo)
+	//database.SeedData(stationRepo)
 	serverRepo := repository.NewServerRepository(db)
 	routeRepo := repository.NewRouteRepository(db)
 
@@ -43,10 +43,11 @@ func main() {
 	// Rotas relacionadas às estações
 	server.POST("/stations", stationController.CreateStation)
 	server.GET("/stations", stationController.GetAllStations)
+	server.POST("/stations/remove", stationController.RemoveStation)
 
 	// Rotas relacionadas à comunicação entre servidores
 	server.POST("/servers/register", serverController.RegisterServer)
-	// server.GET("/servers", serverController.GetRegisteredServers)
+	server.GET("/servers", serverController.GetServersByCompany)
 	// server.DELETE("/servers/inactive", serverController.RemoveInactiveServers)
 
 	server.GET("/server/stations", serverController.GetStationsFromServer)

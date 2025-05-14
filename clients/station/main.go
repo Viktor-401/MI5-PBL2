@@ -34,7 +34,6 @@ func main() {
 		fmt.Println("Error creating MQTT client:", err)
 		return
 	}
-
 	// Estado do posto
 	station := Station{
 		StationID:  stationID,
@@ -49,6 +48,7 @@ func main() {
 		fmt.Println("Error creating birth message:", err)
 		return
 	}
+
 	err = station.Mqtt.Publish(birthMessage)
 	if err != nil {
 		fmt.Println("Error publishing birth message:", err)
@@ -87,9 +87,9 @@ func (s *Station) BirthMessage() (types.MQTT_Message, error) {
 	topic := types.StationBirthTopic(s.ServerIP)
 
 	station := &types.Station{
-		ID:         s.StationID,
-		ServerIP:   s.ServerIP,
-		ReservedBy: s.ReservedBy,
+		StationID: s.StationID,
+		Company:   "",
+		InUseBy:   s.ReservedBy,
 	}
 
 	payload, err := json.Marshal(station)
@@ -106,7 +106,7 @@ func (s *Station) BirthMessage() (types.MQTT_Message, error) {
 func (s *Station) DeathMessage() (types.MQTT_Message, error) {
 	topic := types.StationDeathTopic(s.ServerIP)
 
-	payload, err := json.Marshal(s)
+	payload, err := json.Marshal(s.StationID)
 	if err != nil {
 		return types.MQTT_Message{}, err
 	}

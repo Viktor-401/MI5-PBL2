@@ -28,8 +28,16 @@ func (su *StationUsecase) CreateStation(station model.Station) (model.Station, e
 	return station, nil
 }
 
-func (su *StationUsecase) GetAllStations(ctx context.Context, company string) ([]model.Station, error) {
-	stations, err := su.repository.GetAllStations(ctx, company)
+func (su *StationUsecase) RemoveStation(ctx context.Context, stationID int) error {
+	err := su.repository.RemoveStation(ctx, stationID)
+	if err != nil {
+		return fmt.Errorf("erro ao remover estação: %w", err)
+	}
+	return nil
+}
+
+func (su *StationUsecase) GetAllStations(ctx context.Context) ([]model.Station, error) {
+	stations, err := su.repository.GetAllStations(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +46,7 @@ func (su *StationUsecase) GetAllStations(ctx context.Context, company string) ([
 
 func (su *StationUsecase) ReserveStation(ctx context.Context, stationID int, carID int) error {
 	// Busca a estação pelo ID
-	stations, err := su.repository.GetAllStations(ctx, "")
+	stations, err := su.repository.GetAllStations(ctx)
 	if err != nil {
 		return fmt.Errorf("erro ao buscar estações: %w", err)
 	}

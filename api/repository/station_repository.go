@@ -30,13 +30,22 @@ func (sr *StationRepository) CreateStation(station model.Station) (int, error) {
 	return station.StationID, nil
 }
 
-func (sr *StationRepository) GetAllStations(ctx context.Context, company string) ([]model.Station, error) {
-	// Define o filtro para a consulta
-	filter := bson.M{}
-	if company != "" {
-		filter["company"] = company
+func (sr *StationRepository) RemoveStation(ctx context.Context, stationID int) error {
+	// Define o filtro para encontrar a estação pelo ID
+	filter := bson.M{"station_id": stationID}
+
+	// Remove a estação da coleção
+	_, err := sr.collection.DeleteOne(ctx, filter)
+	if err != nil {
+		return fmt.Errorf("erro ao remover estação com ID %d: %w", stationID, err)
 	}
 
+	return nil
+}
+
+func (sr *StationRepository) GetAllStations(ctx context.Context) ([]model.Station, error) {
+	// Define o filtro para a consulta
+	filter := bson.M{}
 	// Realiza a consulta no MongoDB
 	cursor, err := sr.collection.Find(ctx, filter)
 	if err != nil {

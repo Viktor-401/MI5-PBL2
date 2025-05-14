@@ -37,16 +37,33 @@ func (sc *StationController) CreateStation(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, station)
 }
 
-func (sc *StationController) GetAllStations(ctx *gin.Context) {
-	company := ctx.Query("company") // Obtém o filtro de empresa da query string
+func (sc *StationController) RemoveStation(ctx *gin.Context) {
+    var request struct {
+        StationID int `json:"station_id"`
+    }
 
-	stations, err := sc.stationUsecase.GetAllStations(ctx, company)
+    if err := ctx.BindJSON(&request); err != nil {
+        ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+
+    err := sc.stationUsecase.RemoveStation(ctx, request.StationID)
+    if err != nil {
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    ctx.JSON(http.StatusOK, gin.H{"message": "Estação removida com sucesso"})
+}
+
+func (sc *StationController) GetAllStations(ctx *gin.Context) {
+	stations, err := sc.stationUsecase.GetAllStations(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"stations": stations})
+	ctx.JSON(http.StatusOK, stations)
 }
 
 func (sc *StationController) ReserveStation(ctx *gin.Context) {

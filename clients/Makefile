@@ -3,11 +3,11 @@ PORT ?= 8080
 
 hostcar:
 	docker build -t car-client -f car/Dockerfile .
-	docker run -it --rm --name car-client -h 172.16.103.9 -e PORT=$(PORT) -p $(PORT):8080 car-client
+	docker run -it --rm -h 172.16.103.9 -e PORT=$(PORT) -p $(PORT):8080 car-client
 
 hoststation:
 	docker build -t station-client -f station/Dockerfile .
-	docker run -it --rm --name station-client -h 172.16.103.9 -e PORT=$(PORT) -p $(PORT):8080 station-client
+	docker run -it --rm -h 172.16.103.9 -e PORT=$(PORT) -p $(PORT):8080 station-client
 
 hostbroker:
 	docker build -t mosquitto-broker -f broker/Dockerfile broker/
@@ -15,11 +15,11 @@ hostbroker:
 
 car:
 	docker build -t car-client -f car/Dockerfile .
-	docker run -it --rm --name car-client --network app-net -e PORT=$(PORT) -p $(PORT):8080 car-client
+	docker run -it --rm --network app-net -e PORT=$(PORT) -p $(PORT):8080 car-client
 
 station:
 	docker build -t station-client -f station/Dockerfile .
-	docker run -it --rm --name station-client --network app-net -e PORT=$(PORT) -p $(PORT):8080 station-client
+	docker run -it --rm --network app-net -e PORT=$(PORT) -p $(PORT):8080 station-client
 
 broker:
 	docker build -t mosquitto-broker -f broker/Dockerfile broker/

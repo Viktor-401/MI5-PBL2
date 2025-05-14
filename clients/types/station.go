@@ -1,7 +1,7 @@
 package types
 
 type Station struct {
-	ID         int    `bson:"_id,omitempty"` // ID gerado pelo MongoDB
-	ServerIP   string `bson:"server_ip"`     // IP do servidor
-	ReservedBy int    `bson:"reserved_by"`   // ID do cliente carro que reservou o posto
+	StationID int    `bson:"station_id"`
+	Company   string `bson:"company"` // Nome da empresa
+	InUseBy   int    `bson:"in_use"`  // CarID
 }
