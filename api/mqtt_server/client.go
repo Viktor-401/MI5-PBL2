@@ -85,25 +85,28 @@ func MqttMain(serverCompany string, port string) {
 				return
 			}
 
-			// resp, err := http.Get(url)
-			// if err != nil {
-			// 	log.Printf("Erro na requisição GET para %s: %v", url, err)
-			// 	return
-			// }
-			// defer resp.Body.Close() // Certifique-se de fechar o corpo da resposta
+			availableStations := make(map[string][]model.Station)
 
-			// // Verifique se o status HTTP é 200 OK
-			// if resp.StatusCode != http.StatusOK {
-			// 	log.Printf("Erro: status de resposta %d para %s", resp.StatusCode, url)
-			// 	return
-			// }
+			routesList := []model.Route{}
+			json.Unmarshal(body, &routesList)
+			for _, route := range routesList {
+				for _, waypoint := range route.Waypoints {
+					url = fmt.Sprintf("http://%s:%s/servers/%s", serverState.ServerIP, serverState.Port, waypoint)
+					body = SendHttpGetRequest(url)
+					if body == nil {
+						return
+					}
+					stationList := []model.Station{}
+					json.Unmarshal(body, &stationList)
+					availableStations[waypoint] = stationList
+				}
+			}
 
-			// // Lê o corpo da resposta
-			// body, err := io.ReadAll(resp.Body)
-			// if err != nil {
-			// 	log.Printf("Erro ao ler corpo da resposta: %v", err)
-			// 	return
-			// }
+			body, err := json.Marshal(availableStations)
+			if err != nil {
+				log.Printf("Erro ao serializar availableStations: %v", err)
+				return
+			}
 
 			// Cria a mensagem MQTT de resposta
 			mqttMessage = &model.MQTT_Message{
@@ -135,10 +138,33 @@ func MqttMain(serverCompany string, port string) {
 
 			city1, city2 := routesMessage.City1, routesMessage.City2
 			url := fmt.Sprintf("http://%s:%s/routes?start_city=%s&end_city=%s", serverState.ServerIP, serverState.Port, city1, city2)
-
+			
 			// Realiza a requisição HTTP
 			body := SendHttpGetRequest(url)
 			if body == nil {
+				return
+			}
+
+			availableStations := make(map[string][]model.Station)
+
+			routesList := []model.Route{}
+			json.Unmarshal(body, &routesList)
+			for _, route := range routesList {
+				for _, waypoint := range route.Waypoints {
+					url = fmt.Sprintf("http://%s:%s/servers/%s", serverState.ServerIP, serverState.Port, waypoint)
+					body = SendHttpGetRequest(url)
+					if body == nil {
+						return
+					}
+					stationList := []model.Station{}
+					json.Unmarshal(body, &stationList)
+					availableStations[waypoint] = stationList
+				}
+			}
+
+			body, err := json.Marshal(availableStations)
+			if err != nil {
+				log.Printf("Erro ao serializar availableStations: %v", err)
 				return
 			}
 
@@ -166,69 +192,65 @@ func MqttMain(serverCompany string, port string) {
 			mqttMessage := &model.MQTT_Message{}
 			json.Unmarshal(msg.Payload(), mqttMessage)
 
-			selectRouteMessage := &model.SelectRouteMessage{}
-			json.Unmarshal(mqttMessage.Message, selectRouteMessage)
+			selectedRouteMessage := model.SelectRouteMessage{}
+			json.Unmarshal(mqttMessage.Message, &selectedRouteMessage)
 
-			// route := selectRouteMessage.Route
+			car := selectedRouteMessage.Car
+			selectedStations := selectedRouteMessage.StationsList
 
-			// stations := make([]model.Station, len(route.Waypoints))
-			// for _, stationID := range route.Waypoints {
-			// 	url := fmt.Sprintf("http://%s:%s/stations/%s", serverState.ServerIP, serverState.Port, stationID)
-			// 	body := SendHttpGetRequest(url)
-			// 	if body != nil {
-			// 		station := model.Station{}
-			// 		json.Unmarshal(body, &station)	
-			// 		stations = append(stations, station)
-			// 	}
-			// }
+			// Fase 1 do 2PC
+			// Envia a requisição de preparação para cada station
+			url := ""
+			allPrepared := true
+			for _, station := range selectedStations {
+				// url + station = fmt.Sprintf("http://%s:%s/stations/%s", serverState.ServerIP, serverState.Port, stationID)
+				if serverState.ServerIP != station.ServerIP {
+					url = fmt.Sprintf("http://%s:%s/server/%s/stations/%d", 
+						serverState.ServerIP, serverState.Port, station.Company, station.StationID)
+				} else {
+					url = fmt.Sprintf("http://%s:%s/stations/%d", 
+					serverState.ServerIP, serverState.Port, station.StationID)
+				}
 
-			// allPrepared := true
-			// for _, stations := range stations {
-			// 	prepared, err := SendPrepareRequest(p.URL, p.Payload)
-			// 	if err != nil || !prepared {
-			// 		allPrepared = false
-			// 		break
-			// 	}
-			// }
+				prepared, err := SendPrepareRequest(url, car)
+				if err != nil || !prepared {
+					allPrepared = false
+					break
+				}
+			}
+		 
+			if !allPrepared {
+				for _, station := range selectedStations {
+					SendAbortRequest(fmt.Sprintf("%d",station.StationID))
+				}
+				fmt.Printf("Prepare failed")
+				return
+			}
 
-			// if !allPrepared {
-			// 	for _, stations := range stations {
-			// 		SendAbortRequest(p.URL)
-			// 	}
-			// 	fmt.Fprint(w, "Transaction aborted")
-			// 	return
-			// }
+			// Phase 2: Commit
+			for _, station := range selectedStations {
+				// Envia a requisição de commit para cada station
+				if err := SendCommitRequest(fmt.Sprintf("%d",station.StationID)); err != nil {
+					fmt.Printf("Commit failed for %d: %v\n", station.StationID, err)
+				}
 
-			// // Phase 2: Commit
-			// for _, stations := range stations {
-			// 	if err := sendCommitRequest(p.URL); err != nil {
-			// 		fmt.Printf("Commit failed for %s: %v\n", p.URL, err)
-			// 	}
-			// }
+				// Envia a mensagem de reserva para o tópico do posto
+				for _, station := range selectedStations {
+					topic = model.ResponseStationReserveTopic(serverIP, fmt.Sprintf("%d",station.StationID))
 
-			// 	if station.InUseBy != -1 {
+					carInfo := &model.CarInfo{
+						CarId: car.GetCarID(),
+					}
+					payload, _ := json.Marshal(carInfo)
 
-			// 	}
-			// }
-			// car := selectRouteMessage.Car
-			// route := selectRouteMessage.Route
-			// for _, waypoint := range route.Waypoints {
-			// 	topic = model.StationReserveTopic(serverIP, waypoint)
+					mqttMessage = &model.MQTT_Message{
+						Topic:   topic	,
+						Message: payload,
+					}
 
-			// 	carInfo := &model.CarInfo{
-			// 		CarId: car.GetCarID(),
-			// 	}
-			// 	payload, _ := json.Marshal(carInfo)
-
-			// 	mqttMessage = &model.MQTT_Message{
-			// 		Topic:   model	,
-			// 		Message: payload,
-			// 	}
-
-			// 	serverState.Mqtt.Publish(*mqttMessage)
-			// }
-
-			// TODO reservar a rota pela API
+					serverState.Mqtt.Publish(*mqttMessage)
+				}
+			}
 		})
 
 		topic = model.CarDeathTopic(serverState.ServerIP)
@@ -280,6 +302,9 @@ func MqttMain(serverCompany string, port string) {
 		// Envia a requisição HTTP com o payload atualizado
 		url := fmt.Sprintf("http://%s:%s/stations", serverState.ServerIP, serverState.Port)
 		SendHttpPostRequest(url, updatedPayload)
+
+
+
 		// Inscrição no tópico de nascimento de um posto
 		topic = model.StationDeathTopic(serverState.ServerIP)
 		serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {

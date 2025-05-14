@@ -38,33 +38,40 @@ func (sc *ServerController) RegisterServer(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Servidor registrado com sucesso"})
 }
 
-func (sc *ServerController) GetServersByCompany(ctx *gin.Context) {
-	// Obtém o parâmetro "company" da query string
-	company := ctx.Query("company")
-	if company == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "company name is required"})
+func (sc *ServerController) GetServerByCompany(ctx *gin.Context) {
+	// Obtém o parâmetro "id" da URL
+	companyID := ctx.Param("id")
+	if companyID == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "company ID is required"})
 		return
 	}
 
 	// Chama o usecase para buscar os servidores pela companhia
-	servers, err := sc.serverUsecase.GetServersByCompany(company)
+	server, err := sc.serverUsecase.GetServerByCompany(companyID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Retorna os servidores encontrados
-	ctx.JSON(http.StatusOK, servers)
+	// Retorna os servidor encontrado
+	ctx.JSON(http.StatusOK, server)
 }
 
 func (sc *ServerController) GetStationsFromServer(ctx *gin.Context) {
-	serverURL := ctx.Query("server_url")
-	if serverURL == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "server_url is required"})
+	serverID := ctx.Param("sid")
+	if serverID == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "server_id is required"})
+		return
+	}
+	server, err := sc.serverUsecase.GetServerByCompany(serverID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	stations, err := sc.serverUsecase.GetStationsFromServer(serverURL)
+	url := "http://" + server.ServerIP + "/stations"
+
+	stations, err := sc.serverUsecase.GetStationsFromServer(url)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -25,22 +25,28 @@ func (sr *StationRepository) CreateStation(station model.Station) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("erro ao criar estação: %w", err)
 	}
-
 	// Retorna o ID da estação
 	return station.StationID, nil
 }
 
 func (sr *StationRepository) RemoveStation(ctx context.Context, stationID int) error {
-	// Define o filtro para encontrar a estação pelo ID
-	filter := bson.M{"station_id": stationID}
+    // Define o filtro para encontrar a estação pelo ID
+    filter := bson.M{"station_id": stationID}
 
-	// Remove a estação da coleção
-	_, err := sr.collection.DeleteOne(ctx, filter)
-	if err != nil {
-		return fmt.Errorf("erro ao remover estação com ID %d: %w", stationID, err)
-	}
+    // Define a atualização para alterar o campo IsActive para false
+    update := bson.M{
+        "$set": bson.M{
+            "is_active": false,
+        },
+    }
 
-	return nil
+    // Atualiza o documento correspondente
+    _, err := sr.collection.UpdateOne(ctx, filter, update)
+    if err != nil {
+        return fmt.Errorf("erro ao desativar estação com ID %d: %w", stationID, err)
+    }
+
+    return nil
 }
 
 func (sr *StationRepository) GetAllStations(ctx context.Context) ([]model.Station, error) {

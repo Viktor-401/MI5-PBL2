@@ -5,6 +5,7 @@ type Route struct {
 	StartCity  string   `bson:"start_city"`    // Cidade de origem
 	EndCity    string   `bson:"end_city"`      // Cidade de destino
 	Waypoints  []string `bson:"waypoints"`     // Cidades intermediárias
+	Stations   []Station `bson:"stations"`      // Estações de carga
 	Company    string   `bson:"company"`       // Empresa responsável
 	DistanceKM int      `bson:"distance_km"`   // Distância total em quilômetros
 }

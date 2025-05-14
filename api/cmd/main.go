@@ -47,13 +47,19 @@ func main() {
 	server.POST("/stations/:id/remove", stationController.RemoveStation)
 	server.POST("/stations/:id/reserve", stationController.ReserveStation)
 
+	// Rotas relacionadas ao 2PC
+	server.POST("/stations/:id/prepare", stationController.PrepareStation)
+	//server.POST("/stations/:id/commit", stationController.CommitStation)
+	//server.POST("/stations/:id/abort", stationController.AbortStation)
+
 	// Rotas relacionadas à comunicação entre servidores
 	server.POST("/servers/register", serverController.RegisterServer)
-	server.GET("/servers", serverController.GetServersByCompany)
-	// server.DELETE("/servers/inactive", serverController.RemoveInactiveServers)
+	server.GET("/servers/:id", serverController.GetServerByCompany)
 
-	server.GET("/server/stations", serverController.GetStationsFromServer)
-	server.POST("/server/reserve", serverController.ReserveStationOnServer)
+	// Rotas relacionadas ao servidor remoto
+	server.GET("/server/:sid/stations", serverController.GetStationsFromServer)
+
+	server.POST("/server/:sid/stations/:id/reserve/", serverController.ReserveStationOnServer)
 
 	// Rotas relacionadas às rotas
 	server.POST("/routes", routeController.CreateRoute)
@@ -71,16 +77,5 @@ func main() {
 
 	go mqtt_server.MqttMain(company, port)
 	server.Run(fmt.Sprintf(":%s", port))
-
-	// var wg sync.WaitGroup
-	// wg.Add(1)
-
-	// go func() {
-	// 	defer wg.Done()
-	// 	server.Run(fmt.Sprintf(":%s", port))
-	// }()
-
-	// wg.Wait()
-	// mqtt_server.MqttMain(company, port)
 
 }

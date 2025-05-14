@@ -39,19 +39,21 @@ func (sr *ServerRepository) RegisterOrUpdateServer(ctx context.Context, company 
 	return nil
 }
 
-func (sr *ServerRepository) GetServersByCompany(ctx context.Context, company string) ([]model.Server, error) {
+func (sr *ServerRepository) GetServerByCompany(ctx context.Context, company string) (model.Server, error) {
+	// Define o filtro para buscar o servidor pela companhia
 	filter := bson.M{"company": company}
-	cursor, err := sr.collection.Find(ctx, filter)
-	if err != nil {
-		return nil, fmt.Errorf("erro ao buscar servidores: %w", err)
-	}
-	defer cursor.Close(ctx)
 
-	var servers []model.Server
-	if err := cursor.All(ctx, &servers); err != nil {
-		return nil, fmt.Errorf("erro ao decodificar servidores: %w", err)
+	// Busca um único servidor no MongoDB
+	var server model.Server
+	err := sr.collection.FindOne(ctx, filter).Decode(&server)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return model.Server{}, fmt.Errorf("nenhum servidor encontrado para a companhia: %s", company)
+		}
+		return model.Server{}, fmt.Errorf("erro ao buscar servidor: %w", err)
 	}
-	return servers, nil
+
+	return server, nil
 }
 
 // Obtém a lista de servidores registrados
@@ -74,15 +76,4 @@ func (sr *ServerRepository) GetRegisteredServers(ctx context.Context) ([]string,
 		ips = append(ips, server.ServerIP)
 	}
 	return ips, nil
-}
-
-// Remove servidores inativos com base em um limite de tempo
-func (sr *ServerRepository) RemoveInactiveServers(ctx context.Context, threshold time.Duration) error {
-	_, err := sr.collection.DeleteMany(ctx, bson.M{
-		"timestamp": bson.M{"$lt": time.Now().Add(-threshold)},
-	})
-	if err != nil {
-		return fmt.Errorf("erro ao remover servidores inativos: %w", err)
-	}
-	return nil
 }

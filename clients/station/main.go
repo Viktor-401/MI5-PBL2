@@ -10,9 +10,7 @@ import (
 )
 
 type Station struct {
-	StationID  int
-	ServerIP   string
-	ReservedBy int // ID do cliente carro que reservou o posto
+	StationData types.Station
 	Mqtt       *mqtt.MQTT
 }
 
@@ -36,9 +34,13 @@ func main() {
 	}
 	// Estado do posto
 	station := Station{
-		StationID:  stationID,
-		ServerIP:   serverIP,
-		ReservedBy: -1,
+		StationData: types.Station{
+			StationID: stationID,
+			ServerIP: serverIP,
+			Company: "",
+			InUseBy: -1,
+			IsActive: true,
+		},
 		Mqtt:       mqttClient,
 	}
 
@@ -56,7 +58,7 @@ func main() {
 	}
 
 	// Topico para reservar o posto
-	topic := types.StationReserveTopic(station.ServerIP, station.StationID)
+	topic := types.ResponseStationReserveTopic(station.StationData.ServerIP, fmt.Sprintf("%d", station.StationData.StationID))
 	// Inscrição no tópico de reserva, e atribui a função de callback
 	station.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
 		carInfo := &types.CarInfo{}
@@ -67,8 +69,8 @@ func main() {
 			return
 		}
 		// Atualiza o ID do carro que reservou o posto
-		station.ReservedBy = carInfo.CarId
-		fmt.Printf("Posto %d reservado pelo carro %d\n", station.StationID, carInfo.CarId)
+		station.StationData.InUseBy = carInfo.CarId
+		fmt.Printf("Posto %d reservado pelo carro %d\n", station.StationData.StationID, carInfo.CarId)
 	})
 
 	// Mantem o cliente MQTT ativo até o usuário encerrar
@@ -84,15 +86,9 @@ func main() {
 }
 
 func (s *Station) BirthMessage() (types.MQTT_Message, error) {
-	topic := types.StationBirthTopic(s.ServerIP)
+	topic := types.StationBirthTopic(s.StationData.ServerIP)
 
-	station := &types.Station{
-		StationID: s.StationID,
-		Company:   "",
-		InUseBy:   s.ReservedBy,
-	}
-
-	payload, err := json.Marshal(station)
+	payload, err := json.Marshal(s.StationData)
 	if err != nil {
 		return types.MQTT_Message{}, err
 	}
@@ -104,9 +100,9 @@ func (s *Station) BirthMessage() (types.MQTT_Message, error) {
 }
 
 func (s *Station) DeathMessage() (types.MQTT_Message, error) {
-	topic := types.StationDeathTopic(s.ServerIP)
+	topic := types.StationDeathTopic(s.StationData.ServerIP)
 
-	payload, err := json.Marshal(s.StationID)
+	payload, err := json.Marshal(s.StationData.StationID)
 	if err != nil {
 		return types.MQTT_Message{}, err
 	}

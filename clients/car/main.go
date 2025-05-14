@@ -58,16 +58,16 @@ func main() {
 	})
 
 	// Inscrição no tópico de reserva de rotas
-	topic = types.CarReserveTopic(serverIP, carState.Car.GetCarID())
+	topic = types.ResponseCarReserveTopic(serverIP, carState.Car.GetCarID())
 	carState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
 		// Funcao de callback para quando uma mensagem é recebida
-		route, err := UnmarshalListRoutesSelect(msg)
+		selectedStations, err := UnmarshalListRoutesSelect(msg)
 		if err != nil {
 			fmt.Println("Error unmarshalling route selection:", err)
 			return
 		}
 
-		message, err := carState.SelectRouteMessage(carState.Car, route)
+		message, err := carState.SelectRouteMessage(carState.Car, selectedStations)
 		if err != nil {
 			fmt.Println("Error creating reserve route message:", err)
 			return
@@ -206,14 +206,15 @@ func (s *CarState) ReserveRouteMessage(city1 string, city2 string) (types.MQTT_M
 }
 
 // Retorna a mensagem de reserva de rotas para ser enviada ao servidor via MQTT
-func (s *CarState) SelectRouteMessage(car types.Car, route types.Route) (types.MQTT_Message, error) {
+func (s *CarState) SelectRouteMessage(car types.Car, selectedStations []types.Station) (types.MQTT_Message, error) {
 	topic := types.CarSelectRouteTopic(s.ServerIP, s.Car.GetCarID())
 
-	selectRouteMessage := types.SelectRouteMessage{
-		Car:   car,
-		Route: route,
+	message := types.SelectRouteMessage{
+		Car: car,
+		StationsList: selectedStations,
 	}
-	payload, err := json.Marshal(selectRouteMessage)
+
+	payload, err := json.Marshal(message)
 	if err != nil {
 		return types.MQTT_Message{}, err
 	}
@@ -244,7 +245,7 @@ func CityInput() (string, string) {
 	return city1, city2
 }
 
-func UnmarshalListRoutes(msg paho.Message) []types.Route {
+func UnmarshalListRoutes(msg paho.Message) map[string][]types.Station {
 	// Deserializa a mensagem recebida
 	mqttMessage := &types.MQTT_Message{}
 	err := json.Unmarshal(msg.Payload(), mqttMessage)
@@ -253,32 +254,54 @@ func UnmarshalListRoutes(msg paho.Message) []types.Route {
 		return nil
 	}
 
-	// routesMessage := &types.RoutesList{}
-	var routesMessage []types.Route
-	err = json.Unmarshal(mqttMessage.Message, &routesMessage)
+	availableStations := make(map[string][]types.Station)
+	err = json.Unmarshal(mqttMessage.Message, &availableStations)
 	if err != nil {
 		fmt.Println("Error unmarshalling message:", err)
 		return nil
 	}
 
 	// Lista as rotas no terminal
-	for _, route := range routesMessage {
-		route.PrintRoute()
+	for company, stationList := range availableStations {
+		fmt.Print("Companhia: ", company, " - Estações: ")
+		for i, station := range stationList {
+			fmt.Printf("StationID: %d", station.StationID)
+			if i < len(stationList)-1 {
+				fmt.Print(", ")
+			}
+		}
 	}
 
-	return routesMessage
+	return availableStations
 }
 
-func UnmarshalListRoutesSelect(msg paho.Message) (types.Route, error) {
-	routesMessage := UnmarshalListRoutes(msg)
-	fmt.Println("Escolha uma rota para reservar:")
-	selectedRoute := ""
-	fmt.Scanln(&selectedRoute)
+func UnmarshalListRoutesSelect(msg paho.Message) ([]types.Station, error) {
+	selectedStations := []types.Station{}
 
-	selectedRouteInt, err := strconv.Atoi(selectedRoute)
-	if err != nil || selectedRouteInt < 0 || selectedRouteInt >= len(routesMessage) {
-		return types.Route{}, fmt.Errorf("invalid route selection")
+	availableStations := UnmarshalListRoutes(msg)
+	for company, stationList := range availableStations {
+		fmt.Printf("Escolha uma rota da companhia %s para reservar:", company)
+		i := 0
+		for i, station := range stationList {
+			fmt.Printf(" %d - StationID: %d", i, station.StationID)
+			if i < len(stationList)-1 {
+				fmt.Print(", ")
+			}
+		}
+		selectedStation := ""
+		fmt.Scanln(&selectedStation)
+		selectedStationInt, err := strconv.Atoi(selectedStation)
+		if err != nil || selectedStationInt < 0 || selectedStationInt >= i {
+			return []types.Station{} , fmt.Errorf("invalid route selection")
+		} else { 
+			selectedStations = append(selectedStations, stationList[selectedStationInt])
+		}
 	}
 
-	return routesMessage[selectedRouteInt], nil
+	fmt.Println("Estações selecionadas:")
+	for i, station := range selectedStations {
+		fmt.Printf("%d: %d\n", i, station.StationID)
+	}
+
+	return selectedStations, nil
 }

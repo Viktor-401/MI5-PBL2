@@ -46,14 +46,14 @@ func (sc *StationController) RemoveStation(ctx *gin.Context) {
 		return
 	}
 
-	// Chama o caso de uso para remover a estação
+	// Chama o caso de uso para desativar a estação
 	err = sc.stationUsecase.RemoveStation(ctx, stationID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "Estação removida com sucesso"})
+	ctx.JSON(http.StatusOK, gin.H{"message": "Estação desativada com sucesso"})
 }
 
 func (sc *StationController) GetAllStations(ctx *gin.Context) {
@@ -80,6 +80,33 @@ func (sc *StationController) GetStationByID(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, station)
+}
+
+func (sc *StationController) PrepareStation(ctx *gin.Context) {
+	// Captura o ID da estação da URL
+	stationID, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
+		return
+	}
+
+	// Captura o payload da requisição
+	var request struct {
+		CarID int `json:"car_id"`
+	}
+	if err := ctx.BindJSON(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Chama o caso de uso para preparar a estação
+	err = sc.stationUsecase.PrepareStation(ctx, stationID, request.CarID)
+	if err != nil {
+		ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Estação preparada com sucesso"})
 }
 
 func (sc *StationController) ReserveStation(ctx *gin.Context) {

@@ -34,8 +34,8 @@ func (su *ServerUsecase) RegisterOrUpdateServer(company string, serverIP string)
 
 	return nil
 }
-func (su *ServerUsecase) GetServersByCompany(company string) ([]model.Server, error) {
-	return su.serverRepo.GetServersByCompany(context.Background(), company)
+func (su *ServerUsecase) GetServerByCompany(company string) (model.Server, error) {
+	return su.serverRepo.GetServerByCompany(context.Background(), company)
 }
 
 // Consulta estações disponíveis em outro servidor
@@ -53,17 +53,14 @@ func (su *ServerUsecase) GetStationsFromServer(url string) ([]model.Station, err
 		return nil, fmt.Errorf("erro ao ler resposta do servidor remoto: %w", err)
 	}
 
-	// Estrutura auxiliar para deserializar a resposta
-	var response struct {
-		Stations []model.Station `json:"stations"`
-	}
+	var stations []model.Station
 
 	// Deserializa o JSON
-	if err := json.Unmarshal(body, &response); err != nil {
+	if err := json.Unmarshal(body, &stations); err != nil {
 		return nil, fmt.Errorf("erro ao deserializar a resposta do servidor remoto: %w", err)
 	}
 
-	return response.Stations, nil
+	return stations, nil
 }
 
 // Reserva uma estação em outro servidor

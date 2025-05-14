@@ -60,7 +60,7 @@ type RoutesMessage struct {
 
 type SelectRouteMessage struct {
 	Car   Car   `json:"car"`
-	Route Route `json:"route"`
+	StationsList []Station `json:"route"`
 }
 
 type RoutesList struct {
@@ -133,4 +133,9 @@ func ResponseCarConsultTopic(serverIP string, CarID int) string {
 func ResponseCarReserveTopic(serverIP string, CarID int) string {
 	// Reserve a Car in serverIP with CarID
 	return "response" + Reserve.String() + CarClientType.String() + serverIP + fmt.Sprintf("%d", CarID)
+}
+
+func ResponseStationReserveTopic(serverIP string, stationID string) string {
+	// Reserve a station in serverIP with stationID
+	return "response" + Reserve.String() + StationClientType.String() + serverIP + stationID
 }
