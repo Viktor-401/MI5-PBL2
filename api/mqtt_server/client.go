@@ -85,20 +85,33 @@ func MqttMain(serverCompany string, port string) {
 				return
 			}
 
-			availableStations := make(map[string][]model.Station)
-
 			routesList := []model.Route{}
 			json.Unmarshal(body, &routesList)
+
+			availableStations := make(map[string][]model.Station)
 			for _, route := range routesList {
-				for _, waypoint := range route.Waypoints {
-					url = fmt.Sprintf("http://%s:%s/servers/%s", serverState.ServerIP, serverState.Port, waypoint)
+				for _, company := range route.Waypoints {
+
+					url = fmt.Sprintf("http://%s:%s/servers/%s", serverState.ServerIP, serverState.Port, company)
+					body = SendHttpGetRequest(url)
+					if body == nil {
+						return
+					}
+
+					server := &model.Server{}
+					json.Unmarshal(body, server)
+
+					// fmt.Printf("%s -> %s: ",route.StartCity, route.EndCity, body)
+
+					url = fmt.Sprintf("http://%s:%s/stations", server.ServerIP, server.ServerPort)
 					body = SendHttpGetRequest(url)
 					if body == nil {
 						return
 					}
 					stationList := []model.Station{}
 					json.Unmarshal(body, &stationList)
-					availableStations[waypoint] = stationList
+					availableStations[company] = stationList
+
 				}
 			}
 
@@ -138,7 +151,7 @@ func MqttMain(serverCompany string, port string) {
 
 			city1, city2 := routesMessage.City1, routesMessage.City2
 			url := fmt.Sprintf("http://%s:%s/routes?start_city=%s&end_city=%s", serverState.ServerIP, serverState.Port, city1, city2)
-			
+
 			// Realiza a requisição HTTP
 			body := SendHttpGetRequest(url)
 			if body == nil {
@@ -150,15 +163,28 @@ func MqttMain(serverCompany string, port string) {
 			routesList := []model.Route{}
 			json.Unmarshal(body, &routesList)
 			for _, route := range routesList {
-				for _, waypoint := range route.Waypoints {
-					url = fmt.Sprintf("http://%s:%s/servers/%s", serverState.ServerIP, serverState.Port, waypoint)
+				for _, company := range route.Waypoints {
+
+					url = fmt.Sprintf("http://%s:%s/servers/%s", serverState.ServerIP, serverState.Port, company)
+					body = SendHttpGetRequest(url)
+					if body == nil {
+						return
+					}
+
+					server := &model.Server{}
+					json.Unmarshal(body, server)
+
+					// fmt.Printf("%s -> %s: ",route.StartCity, route.EndCity, body)
+
+					url = fmt.Sprintf("http://%s:%s/stations", server.ServerIP, server.ServerPort)
 					body = SendHttpGetRequest(url)
 					if body == nil {
 						return
 					}
 					stationList := []model.Station{}
 					json.Unmarshal(body, &stationList)
-					availableStations[waypoint] = stationList
+					availableStations[company] = stationList
+
 				}
 			}
 
@@ -205,11 +231,11 @@ func MqttMain(serverCompany string, port string) {
 			for _, station := range selectedStations {
 				// url + station = fmt.Sprintf("http://%s:%s/stations/%s", serverState.ServerIP, serverState.Port, stationID)
 				if serverState.ServerIP != station.ServerIP {
-					url = fmt.Sprintf("http://%s:%s/server/%s/stations/%d", 
+					url = fmt.Sprintf("http://%s:%s/server/%s/stations/%d",
 						serverState.ServerIP, serverState.Port, station.Company, station.StationID)
 				} else {
-					url = fmt.Sprintf("http://%s:%s/stations/%d", 
-					serverState.ServerIP, serverState.Port, station.StationID)
+					url = fmt.Sprintf("http://%s:%s/stations/%d",
+						serverState.ServerIP, serverState.Port, station.StationID)
 				}
 
 				prepared, err := SendPrepareRequest(url, car)
@@ -218,10 +244,10 @@ func MqttMain(serverCompany string, port string) {
 					break
 				}
 			}
-		 
+
 			if !allPrepared {
 				for _, station := range selectedStations {
-					SendAbortRequest(fmt.Sprintf("%d",station.StationID))
+					SendAbortRequest(fmt.Sprintf("%d", station.StationID))
 				}
 				fmt.Printf("Prepare failed")
 				return
@@ -230,13 +256,13 @@ func MqttMain(serverCompany string, port string) {
 			// Phase 2: Commit
 			for _, station := range selectedStations {
 				// Envia a requisição de commit para cada station
-				if err := SendCommitRequest(fmt.Sprintf("%d",station.StationID)); err != nil {
+				if err := SendCommitRequest(fmt.Sprintf("%d", station.StationID)); err != nil {
 					fmt.Printf("Commit failed for %d: %v\n", station.StationID, err)
 				}
 
 				// Envia a mensagem de reserva para o tópico do posto
 				for _, station := range selectedStations {
-					topic = model.ResponseStationReserveTopic(serverIP, fmt.Sprintf("%d",station.StationID))
+					topic = model.ResponseStationReserveTopic(serverIP, fmt.Sprintf("%d", station.StationID))
 
 					carInfo := &model.CarInfo{
 						CarId: car.GetCarID(),
@@ -244,7 +270,7 @@ func MqttMain(serverCompany string, port string) {
 					payload, _ := json.Marshal(carInfo)
 
 					mqttMessage = &model.MQTT_Message{
-						Topic:   topic	,
+						Topic:   topic,
 						Message: payload,
 					}
 
@@ -303,8 +329,6 @@ func MqttMain(serverCompany string, port string) {
 		url := fmt.Sprintf("http://%s:%s/stations", serverState.ServerIP, serverState.Port)
 		SendHttpPostRequest(url, updatedPayload)
 
-
-
 		// Inscrição no tópico de nascimento de um posto
 		topic = model.StationDeathTopic(serverState.ServerIP)
 		serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
@@ -345,8 +369,9 @@ func MqttMain(serverCompany string, port string) {
 		}
 
 		var serverInfo struct {
-			Company  string `json:"company"`
-			ServerIP string `json:"server_ip"`
+			Company    string `json:"company"`
+			ServerIP   string `json:"server_ip"`
+			ServerPort string `json:"server_port"`
 		}
 		if err := json.Unmarshal(mqttMessage.Message, &serverInfo); err != nil {
 			log.Printf("Erro ao decodificar informações do servidor: %v", err)
@@ -356,8 +381,9 @@ func MqttMain(serverCompany string, port string) {
 		// Registra ou atualiza o servidor no banco de dados via POST HTTP
 		url := fmt.Sprintf("http://%s:%s/servers/register", serverIP, port)
 		payload := map[string]string{
-			"company":   serverInfo.Company,
-			"server_ip": serverInfo.ServerIP,
+			"company":     serverInfo.Company,
+			"server_ip":   serverInfo.ServerIP,
+			"server_port": serverInfo.ServerPort,
 		}
 
 		jsonPayload, err := json.Marshal(payload)
@@ -369,8 +395,9 @@ func MqttMain(serverCompany string, port string) {
 		SendHttpPostRequest(url, jsonPayload)
 
 		responsePayload := map[string]string{
-			"company":   serverState.ServerCompany,
-			"server_ip": serverState.ServerIP,
+			"company":     serverState.ServerCompany,
+			"server_ip":   serverState.ServerIP,
+			"server_port": serverState.Port,
 		}
 		responseJson, err := json.Marshal(responsePayload)
 		if err != nil {
@@ -391,8 +418,9 @@ func MqttMain(serverCompany string, port string) {
 	topic = model.ServerBirthTopic(serverState.ServerIP)
 	// Cria o payload da mensagem
 	payload := map[string]string{
-		"company":   serverState.ServerCompany, // Substitua pelo nome real da empresa
-		"server_ip": serverState.ServerIP,
+		"company":     serverState.ServerCompany, // Substitua pelo nome real da empresa
+		"server_ip":   serverState.ServerIP,
+		"server_port": serverState.Port,
 	}
 
 	// Serializa o payload para JSON
@@ -423,8 +451,9 @@ func MqttMain(serverCompany string, port string) {
 		}
 
 		var serverInfo struct {
-			Company  string `json:"company"`
-			ServerIP string `json:"server_ip"`
+			Company    string `json:"company"`
+			ServerIP   string `json:"server_ip"`
+			ServerPort string `json:"server_port"`
 		}
 		if err := json.Unmarshal(mqttMessage.Message, &serverInfo); err != nil {
 			log.Printf("Erro ao decodificar informações do servidor: %v", err)
@@ -434,8 +463,9 @@ func MqttMain(serverCompany string, port string) {
 		// Registra ou atualiza o servidor no banco de dados via POST HTTP
 		url := fmt.Sprintf("http://%s:%s/servers/register", serverIP, port)
 		payload := map[string]string{
-			"company":   serverInfo.Company,
-			"server_ip": serverInfo.ServerIP,
+			"company":     serverInfo.Company,
+			"server_ip":   serverInfo.ServerIP,
+			"server_port": serverInfo.ServerPort,
 		}
 
 		jsonPayload, err := json.Marshal(payload)

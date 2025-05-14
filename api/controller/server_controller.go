@@ -20,8 +20,9 @@ func NewServerController(usecase usecase.ServerUsecase) ServerController {
 
 func (sc *ServerController) RegisterServer(ctx *gin.Context) {
 	var request struct {
-		Company  string `json:"company"`
-		ServerIP string `json:"server_ip"`
+		Company    string `json:"company"`
+		ServerIP   string `json:"server_ip"`
+		ServerPort string `json:"server_port"`
 	}
 
 	if err := ctx.BindJSON(&request); err != nil {
@@ -29,7 +30,7 @@ func (sc *ServerController) RegisterServer(ctx *gin.Context) {
 		return
 	}
 
-	err := sc.serverUsecase.RegisterOrUpdateServer(request.Company, request.ServerIP)
+	err := sc.serverUsecase.RegisterOrUpdateServer(request.Company, request.ServerIP, request.ServerPort)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -53,6 +54,7 @@ func (sc *ServerController) GetServerByCompany(ctx *gin.Context) {
 		return
 	}
 
+	
 	// Retorna os servidor encontrado
 	ctx.JSON(http.StatusOK, server)
 }
@@ -69,7 +71,7 @@ func (sc *ServerController) GetStationsFromServer(ctx *gin.Context) {
 		return
 	}
 
-	url := "http://" + server.ServerIP + "/stations"
+	url := "http://" + server.ServerIP + ":" + server.ServerPort + "/stations"
 
 	stations, err := sc.serverUsecase.GetStationsFromServer(url)
 	if err != nil {

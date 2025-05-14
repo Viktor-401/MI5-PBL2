@@ -53,14 +53,14 @@ func SeedRoutes(db *mongo.Database) {
 			StartCity:  "A",
 			EndCity:    "C",
 			Waypoints:  []string{"B"}, // Rota completa A -> B -> C
-			Company:    "Empresa X",
+			Company:    "A",
 			DistanceKM: 300,
 		},
 		model.Route{
 			StartCity:  "A",
 			EndCity:    "B",
-			Waypoints:  []string{}, // Rota direta A -> B
-			Company:    "Empresa X",
+			Waypoints:  []string{"A", "B"}, // Rota direta A -> B
+			Company:    "A",
 			DistanceKM: 150,
 		},
 
@@ -69,21 +69,21 @@ func SeedRoutes(db *mongo.Database) {
 			StartCity:  "A",
 			EndCity:    "D",
 			Waypoints:  []string{"B", "C"}, // Rota completa A -> B -> C -> D
-			Company:    "Empresa Y",
+			Company:    "A",
 			DistanceKM: 500,
 		},
 		model.Route{
 			StartCity:  "A",
 			EndCity:    "D",
 			Waypoints:  []string{"C"}, // Rota alternativa A -> C -> D
-			Company:    "Empresa Z",
+			Company:    "A",
 			DistanceKM: 400,
 		},
 		model.Route{
 			StartCity:  "A",
 			EndCity:    "D",
 			Waypoints:  []string{"B"}, // Rota alternativa A -> B -> D
-			Company:    "Empresa X",
+			Company:    "A",
 			DistanceKM: 450,
 		},
 	}

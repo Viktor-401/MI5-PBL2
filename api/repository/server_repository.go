@@ -22,12 +22,13 @@ func NewServerRepository(db *mongo.Database) ServerRepository {
 }
 
 // Adiciona ou atualiza um servidor no banco de dados
-func (sr *ServerRepository) RegisterOrUpdateServer(ctx context.Context, company string, serverIP string) error {
+func (sr *ServerRepository) RegisterOrUpdateServer(ctx context.Context, company string, serverIP string, port string) error {
 	filter := bson.M{"server_ip": serverIP}
 	update := bson.M{
 		"$set": bson.M{
-			"company":   company,
-			"timestamp": time.Now(),
+			"company":     company,
+			"server_port": port,
+			"timestamp":   time.Now(),
 		},
 	}
 	opts := options.Update().SetUpsert(true)

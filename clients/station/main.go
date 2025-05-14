@@ -11,7 +11,7 @@ import (
 
 type Station struct {
 	StationData types.Station
-	Mqtt       *mqtt.MQTT
+	Mqtt        *mqtt.MQTT
 }
 
 func main() {
@@ -36,12 +36,12 @@ func main() {
 	station := Station{
 		StationData: types.Station{
 			StationID: stationID,
-			ServerIP: serverIP,
-			Company: "",
-			InUseBy: -1,
-			IsActive: true,
+			ServerIP:  serverIP,
+			Company:   "",
+			InUseBy:   -1,
+			IsActive:  true,
 		},
-		Mqtt:       mqttClient,
+		Mqtt: mqttClient,
 	}
 
 	// Mensagem de nascimento do posto, que informa o servidor que o posto está online

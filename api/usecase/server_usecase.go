@@ -21,13 +21,13 @@ func NewServerUsecase(serverRepo repository.ServerRepository) ServerUsecase {
 	}
 }
 
-func (su *ServerUsecase) RegisterOrUpdateServer(company string, serverIP string) error {
-	if company == "" || serverIP == "" {
+func (su *ServerUsecase) RegisterOrUpdateServer(company string, serverIP string, port string) error {
+	if company == "" || serverIP == "" || port == "" {
 		return fmt.Errorf("company and serverIP are required")
 	}
 
 	// Chama o repositório para registrar ou atualizar o servidor
-	err := su.serverRepo.RegisterOrUpdateServer(context.Background(), company, serverIP)
+	err := su.serverRepo.RegisterOrUpdateServer(context.Background(), company, serverIP, port)
 	if err != nil {
 		return fmt.Errorf("erro ao registrar ou atualizar servidor: %w", err)
 	}

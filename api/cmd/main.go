@@ -46,6 +46,7 @@ func main() {
 	server.GET("/stations/:id", stationController.GetStationByID)
 	server.POST("/stations/:id/remove", stationController.RemoveStation)
 	server.POST("/stations/:id/reserve", stationController.ReserveStation)
+	server.POST("/stations/:id/prepare", stationController.PrepareStation)
 
 	// Rotas relacionadas ao 2PC
 	server.POST("/stations/:id/prepare", stationController.PrepareStation)

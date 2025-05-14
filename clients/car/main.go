@@ -210,7 +210,7 @@ func (s *CarState) SelectRouteMessage(car types.Car, selectedStations []types.St
 	topic := types.CarSelectRouteTopic(s.ServerIP, s.Car.GetCarID())
 
 	message := types.SelectRouteMessage{
-		Car: car,
+		Car:          car,
 		StationsList: selectedStations,
 	}
 
@@ -261,14 +261,12 @@ func UnmarshalListRoutes(msg paho.Message) map[string][]types.Station {
 		return nil
 	}
 
+	fmt.Println(availableStations)
 	// Lista as rotas no terminal
 	for company, stationList := range availableStations {
 		fmt.Print("Companhia: ", company, " - Estações: ")
-		for i, station := range stationList {
+		for _, station := range stationList {
 			fmt.Printf("StationID: %d", station.StationID)
-			if i < len(stationList)-1 {
-				fmt.Print(", ")
-			}
 		}
 	}
 
@@ -280,20 +278,17 @@ func UnmarshalListRoutesSelect(msg paho.Message) ([]types.Station, error) {
 
 	availableStations := UnmarshalListRoutes(msg)
 	for company, stationList := range availableStations {
-		fmt.Printf("Escolha uma rota da companhia %s para reservar:", company)
-		i := 0
+		fmt.Printf("Escolha uma estação da companhia %s para reservar(insira o número à esquerda):\n", company)
+
 		for i, station := range stationList {
-			fmt.Printf(" %d - StationID: %d", i, station.StationID)
-			if i < len(stationList)-1 {
-				fmt.Print(", ")
-			}
+			fmt.Printf(" %d - StationID: %d\n", i, station.StationID)
 		}
 		selectedStation := ""
 		fmt.Scanln(&selectedStation)
 		selectedStationInt, err := strconv.Atoi(selectedStation)
-		if err != nil || selectedStationInt < 0 || selectedStationInt >= i {
-			return []types.Station{} , fmt.Errorf("invalid route selection")
-		} else { 
+		if err != nil || selectedStationInt < 0 {
+			return []types.Station{}, fmt.Errorf("invalid route selection")
+		} else {
 			selectedStations = append(selectedStations, stationList[selectedStationInt])
 		}
 	}
