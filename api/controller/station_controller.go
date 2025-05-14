@@ -39,16 +39,15 @@ func (sc *StationController) CreateStation(ctx *gin.Context) {
 }
 
 func (sc *StationController) RemoveStation(ctx *gin.Context) {
-	var request struct {
-		StationID int `json:"station_id"`
-	}
-
-	if err := ctx.BindJSON(&request); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	// Captura o ID da estação da URL
+	stationID, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
 		return
 	}
 
-	err := sc.stationUsecase.RemoveStation(ctx, request.StationID)
+	// Chama o caso de uso para remover a estação
+	err = sc.stationUsecase.RemoveStation(ctx, stationID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -84,9 +83,16 @@ func (sc *StationController) GetStationByID(ctx *gin.Context) {
 }
 
 func (sc *StationController) ReserveStation(ctx *gin.Context) {
+	// Captura o ID da estação da URL
+	stationID, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
+		return
+	}
+
+	// Captura o ID do carro do corpo da requisição
 	var request struct {
-		StationID int `json:"station_id"`
-		CarID     int `json:"car_id"`
+		CarID int `json:"car_id"`
 	}
 
 	if err := ctx.BindJSON(&request); err != nil {
@@ -94,7 +100,8 @@ func (sc *StationController) ReserveStation(ctx *gin.Context) {
 		return
 	}
 
-	err := sc.stationUsecase.ReserveStation(ctx, request.StationID, request.CarID)
+	// Chama o caso de uso para reservar a estação
+	err = sc.stationUsecase.ReserveStation(ctx, stationID, request.CarID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -26,7 +26,7 @@ func main() {
 
 	fmt.Printf(`Informações do posto:
 	Posto ID: %d
-	IP do Servidor: %s`, stationID, serverIP)
+	IP do Servidor: %s\n`, stationID, serverIP)
 
 	// Cria o cliente MQTT
 	mqttClient, err := mqtt.NewMQTTClient(types.PORT, types.BROKER)

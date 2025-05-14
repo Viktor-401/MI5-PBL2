@@ -171,16 +171,40 @@ func MqttMain(serverCompany string, port string) {
 
 			// route := selectRouteMessage.Route
 
+			// stations := make([]model.Station, len(route.Waypoints))
 			// for _, stationID := range route.Waypoints {
-			// 	url := fmt.Sprintf("http://%s:%s/stations?id=%s", serverState.ServerIP, serverState.Port, stationID)
-			// 	// Realiza a requisição HTTP
+			// 	url := fmt.Sprintf("http://%s:%s/stations/%s", serverState.ServerIP, serverState.Port, stationID)
 			// 	body := SendHttpGetRequest(url)
-			// 	if body == nil {
-			// 		return
+			// 	if body != nil {
+			// 		station := model.Station{}
+			// 		json.Unmarshal(body, &station)	
+			// 		stations = append(stations, station)
 			// 	}
+			// }
 
-			// 	station := model.Station{}
-			// 	json.Unmarshal(body, &station)
+			// allPrepared := true
+			// for _, stations := range stations {
+			// 	prepared, err := SendPrepareRequest(p.URL, p.Payload)
+			// 	if err != nil || !prepared {
+			// 		allPrepared = false
+			// 		break
+			// 	}
+			// }
+
+			// if !allPrepared {
+			// 	for _, stations := range stations {
+			// 		SendAbortRequest(p.URL)
+			// 	}
+			// 	fmt.Fprint(w, "Transaction aborted")
+			// 	return
+			// }
+
+			// // Phase 2: Commit
+			// for _, stations := range stations {
+			// 	if err := sendCommitRequest(p.URL); err != nil {
+			// 		fmt.Printf("Commit failed for %s: %v\n", p.URL, err)
+			// 	}
+			// }
 
 			// 	if station.InUseBy != -1 {
 
@@ -276,18 +300,11 @@ func MqttMain(serverCompany string, port string) {
 				return
 			}
 
-			// Cria o payload para a requisição HTTP
-			payload, err := json.Marshal(map[string]int{"station_id": stationID})
-			if err != nil {
-				log.Printf("Erro ao serializar payload: %v", err)
-				return
-			}
-
-			// Define a URL do endpoint para remover a estação
-			url := fmt.Sprintf("http://%s:%s/stations/remove", serverState.ServerIP, serverState.Port)
+			// Define a URL do endpoint para remover a estação com o ID na URL
+			url := fmt.Sprintf("http://%s:%s/stations/%d/remove", serverState.ServerIP, serverState.Port, stationID)
 
 			// Envia a requisição HTTP POST
-			SendHttpPostRequest(url, payload)
+			SendHttpPostRequest(url, nil) // Nenhum payload é necessário, pois o ID está na URL
 		})
 
 	})
