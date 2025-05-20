@@ -82,12 +82,18 @@ func main() {
 
 	exit := false
 	for !exit {
-		fmt.Println(` Escolha uma ação:
-		1- Consultar Rotas
-		2- Reservar Postos
-		`)
 		action := 0
-		fmt.Scanln(&action)
+        for {
+            fmt.Println(` Escolha uma ação:
+        1- Consultar Rotas
+        2- Reservar Postos
+        `)
+            fmt.Scanln(&action)
+            if action == 1 || action == 2 {
+                break
+            }
+            fmt.Println("Ação inválida. Tente novamente.")
+        }
 		if action == 1 {
 			// Consultar rotas
 			city1, city2 := CityInput()

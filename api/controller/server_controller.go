@@ -2,6 +2,7 @@ package controller
 
 import (
 	"api/usecase"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -104,7 +105,7 @@ func (sc *ServerController) PrepareStationOnServer(ctx *gin.Context) {
 	}
 
 	// Construa a URL do servidor para preparar a estação
-	url := "http://" + server.ServerIP + ":" + server.ServerPort + "/stations/" + strconv.Itoa(stationID) + "/prepare/"
+	url := "http://" + server.ServerIP + ":" + server.ServerPort + "/stations/" + strconv.Itoa(stationID) + "/prepare"
 
 	// Captura o payload da requisição
 	var request struct {
@@ -118,6 +119,7 @@ func (sc *ServerController) PrepareStationOnServer(ctx *gin.Context) {
 	// Chama o caso de uso para preparar a estação no servidor remoto
 	err = sc.serverUsecase.PrepareStationOnServer(url, request.CarID)
 	if err != nil {
+		fmt.Println("Error preparing station on server:", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -181,7 +183,7 @@ func (sc *ServerController) CommitStationOnServer(ctx *gin.Context) {
 		return
 	}
 
-	url := "http://" + server.ServerIP + ":" + server.ServerPort + "/stations/" + strconv.Itoa(stationID) + "/commit/"
+	url := "http://" + server.ServerIP + ":" + server.ServerPort + "/stations/" + strconv.Itoa(stationID) + "/commit"
 
 	// Captura o payload da requisição para obter o carID
 	var request struct {
@@ -202,4 +204,3 @@ func (sc *ServerController) CommitStationOnServer(ctx *gin.Context) {
 	// Retorna uma resposta de sucesso
 	ctx.JSON(http.StatusOK, gin.H{"message": "Estação comitada com sucesso no servidor"})
 }
-

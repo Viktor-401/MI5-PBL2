@@ -24,7 +24,7 @@ func main() {
 
 	fmt.Printf(`Informações do posto:
 	Posto ID: %d
-	IP do Servidor: %s\n`, stationID, serverIP)
+	IP do Servidor: %s`, stationID, serverIP)
 
 	// Cria o cliente MQTT
 	mqttClient, err := mqtt.NewMQTTClient(types.PORT, types.BROKER)
@@ -81,7 +81,7 @@ func main() {
 	})
 
 	// Mantem o cliente MQTT ativo até o usuário encerrar
-	fmt.Println("Enter para encerra o posto")
+	fmt.Println("\nEnter para encerra o posto")
 	fmt.Scanln()
 	// Mensagem de morte do posto, que informa o servidor que o posto está offline
 	message, err := station.DeathMessage()

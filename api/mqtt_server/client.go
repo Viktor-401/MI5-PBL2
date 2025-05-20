@@ -199,7 +199,6 @@ func MqttMain(serverCompany string, port string) {
 			json.Unmarshal(mqttMessage.Message, &selectedRouteMessage)
 
 			car := selectedRouteMessage.Car
-			fmt.Printf("SELECTEDROUTEMESSAGE>CAR %d", car.CarID)
 			selectedStations := selectedRouteMessage.StationsList
 
 			// Fase 1 do 2PC
@@ -226,11 +225,11 @@ func MqttMain(serverCompany string, port string) {
 			if !allPrepared {
 				for _, station := range selectedStations {
 					if serverState.ServerIP != station.ServerIP {
-					url = fmt.Sprintf("http://%s:%s/server/%s/stations/%d",
-						serverState.ServerIP, serverState.Port, station.Company, station.StationID)
+						url = fmt.Sprintf("http://%s:%s/server/%s/stations/%d",
+							serverState.ServerIP, serverState.Port, station.Company, station.StationID)
 					} else {
-					url = fmt.Sprintf("http://%s:%s/stations/%d",
-						serverState.ServerIP, serverState.Port, station.StationID)
+						url = fmt.Sprintf("http://%s:%s/stations/%d",
+							serverState.ServerIP, serverState.Port, station.StationID)
 					}
 
 					SendAbortRequest(url, car)
@@ -239,33 +238,35 @@ func MqttMain(serverCompany string, port string) {
 			}
 
 			// Phase 2: Commit
-			for _, station := range selectedStations {
-				// Envia a requisição de commit para cada station
-				if serverState.ServerIP != station.ServerIP {
-					url = fmt.Sprintf("http://%s:%s/server/%s/stations/%d",
-					serverState.ServerIP, serverState.Port, station.Company, station.StationID)
-				} else {
-					url = fmt.Sprintf("http://%s:%s/stations/%d",
-					serverState.ServerIP, serverState.Port, station.StationID)
-				}
-				if err := SendCommitRequest(url, car.CarID); err != nil {
-					fmt.Printf("Commit failed for %d: %v\n", station.StationID, err)
-				}
-				topic = model.ResponseStationReserveTopic(station.ServerIP, fmt.Sprintf("%d", station.StationID))
+			if allPrepared {
+				for _, station := range selectedStations {
+					// Envia a requisição de commit para cada station
+					if serverState.ServerIP != station.ServerIP {
+						url = fmt.Sprintf("http://%s:%s/server/%s/stations/%d",
+							serverState.ServerIP, serverState.Port, station.Company, station.StationID)
+					} else {
+						url = fmt.Sprintf("http://%s:%s/stations/%d",
+							serverState.ServerIP, serverState.Port, station.StationID)
+					}
+					if err := SendCommitRequest(url, car.CarID); err != nil {
+						fmt.Printf("Commit failed for %d: %v\n", station.StationID, err)
+					}
+					topic = model.ResponseStationReserveTopic(station.ServerIP, fmt.Sprintf("%d", station.StationID))
 
-				// fmt.Printf("Requisição de reserva para a estação de id: %d no ip: %s . Pelo carro de id: %d", station.StationID, station.StationID, car.GetCarID())
+					// fmt.Printf("Requisição de reserva para a estação de id: %d no ip: %s . Pelo carro de id: %d", station.StationID, station.StationID, car.GetCarID())
 
-				carInfo := &model.CarInfo{
-					CarId: car.GetCarID(),
+					carInfo := &model.CarInfo{
+						CarId: car.GetCarID(),
+					}
+					payload, _ := json.Marshal(carInfo)
+
+					mqttMessage = &model.MQTT_Message{
+						Topic:   topic,
+						Message: payload,
+					}
+
+					serverState.Mqtt.Publish(*mqttMessage)
 				}
-				payload, _ := json.Marshal(carInfo)
-
-				mqttMessage = &model.MQTT_Message{
-					Topic:   topic,
-					Message: payload,
-				}
-
-				serverState.Mqtt.Publish(*mqttMessage)
 			}
 		})
 
@@ -540,52 +541,51 @@ func SendHttpPostRequest(url string, payload []byte) {
 }
 
 func SendPrepareRequest(url string, carID int) (bool, error) {
-    // Cria o payload com apenas o CarID
-    payload := struct {
-        CarID int `json:"CarID"`
-    }{
-        CarID: carID,
-    }
+	// Cria o payload com apenas o CarID
+	payload := struct {
+		CarID int `json:"car_id"`
+	}{
+		CarID: carID,
+	}
 
-    jsonPayload, _ := json.Marshal(payload)
-    fmt.Println("Payload enviado:", string(jsonPayload))  // Imprime o payload enviado
+	jsonPayload, _ := json.Marshal(payload)
+	fmt.Println("Prepare Payload enviado:", string(jsonPayload)) // Imprime o payload enviado
 
-    resp, err := http.Post(url+"/prepare", "application/json", bytes.NewBuffer(jsonPayload))
-    if err != nil {
-        return false, err
-    }
-    defer resp.Body.Close()
-    return resp.StatusCode == http.StatusOK, nil
+	resp, err := http.Post(url+"/prepare", "application/json", bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode == http.StatusOK, nil
 }
-
 
 func SendCommitRequest(url string, carID int) error {
-    // Cria o payload com apenas o CarID
-    payload := struct {
-        CarID int `json:"car_id"`
-    }{
-        CarID: carID,
-    }
+	// Cria o payload com apenas o CarID
+	payload := struct {
+		CarID int `json:"car_id"`
+	}{
+		CarID: carID,
+	}
 
-    jsonPayload, _ := json.Marshal(payload)
-    fmt.Println("Payload enviado:", string(jsonPayload))  // Imprime o payload enviado
+	jsonPayload, _ := json.Marshal(payload)
+	fmt.Println("Commit Payload enviado:", string(jsonPayload)) // Imprime o payload enviado
 
-    // Envia a requisição HTTP POST para o servidor
-    resp, err := http.Post(url+"/commit", "application/json", bytes.NewBuffer(jsonPayload))
-    if err != nil {
-        return err
-    }
-    defer resp.Body.Close()
+	// Envia a requisição HTTP POST para o servidor
+	resp, err := http.Post(url+"/commit", "application/json", bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
 
-    // Verifica se a resposta foi bem-sucedida
-    if resp.StatusCode != http.StatusOK {
-        return fmt.Errorf("commit failed for %s", url)
-    }
+	// Verifica se a resposta foi bem-sucedida
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("commit failed for %s", url)
+	}
 
-    return nil
+	return nil
 }
 
-func SendAbortRequest(url string,  payload interface{}) error {
+func SendAbortRequest(url string, payload interface{}) error {
 	jsonPayload, _ := json.Marshal(payload)
 	resp, err := http.Post(url+"/abort", "application/json", bytes.NewBuffer(jsonPayload))
 	if err != nil {

@@ -23,7 +23,7 @@ station:
 
 broker:
 	docker build -t mosquitto-broker -f broker/Dockerfile broker/
-	docker run  --rm --name mosquitto --network app-net -p 1883:1883 -p 9001:9001 mosquitto-broker
+	docker run  --rm --name mosquitto -p 1883:1883 -p 9001:9001 --network app-net  mosquitto-broker
 
 clean:
 	docker rm -f car-client station-client mosquitto 2>/dev/null || true

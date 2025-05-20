@@ -31,22 +31,18 @@ func (su *StationUsecase) CreateStation(station model.Station) (model.Station, e
 }
 func (su *StationUsecase) CommitStation(ctx context.Context, stationID int, carID int) error {
 	// Busca a estação pelo ID
-	station, err := su.GetStationByID(ctx, stationID)
-	if err != nil {
-		return fmt.Errorf("erro ao buscar estação: %w", err)
-	}
-	fmt.Printf(" SU COMMIT STATION ")
+
 	// A estação foi preparada, então agora podemos chamar a função ReserveStation para efetivar a reserva
-	err = su.ReserveStation(ctx, stationID, carID)
+	err := su.ReserveStation(ctx, stationID, carID)
 	if err != nil {
 		return fmt.Errorf("erro ao confirmar a reserva da estação: %w", err)
 	}
 
-	// Marca a estação como "confirmada"
-	err = su.repository.UpdateStation(ctx, station)
-	if err != nil {
-		return fmt.Errorf("erro ao atualizar estação: %w", err)
-	}
+	// // Marca a estação como "confirmada"
+	// err = su.repository.UpdateStation(ctx, station)
+	// if err != nil {
+	// 	return fmt.Errorf("erro ao atualizar estação: %w", err)
+	// }
 
 	return nil
 }
@@ -94,11 +90,10 @@ func (su *StationUsecase) PrepareStation(ctx context.Context, stationID int, car
 		return fmt.Errorf("estação com ID %d já está em uso", stationID)
 	}
 
-	err = su.repository.UpdateStation(ctx, station)
-	if err != nil {
-		return fmt.Errorf("erro ao preparar estação: %w", err)
-	}
-	fmt.Printf(" STATION USECASE PREPARE STATION CAR ID %d", carID)
+	// err = su.repository.UpdateStation(ctx, station)
+	// if err != nil {
+	// 	return fmt.Errorf("erro ao preparar estação: %w", err)
+	// }
 	return nil
 }
 func (su *StationUsecase) ReserveStation(ctx context.Context, stationID int, carID int) error {
@@ -109,9 +104,7 @@ func (su *StationUsecase) ReserveStation(ctx context.Context, stationID int, car
 	}
 
 	station.InUseBy = carID
-	fmt.Printf("STATIONID: %d\n", stationID)
-	fmt.Printf("CARID: %d\n", carID)
-	
+
 	// Confirma a reserva (pode incluir lógica adicional, se necessário)
 	err = su.repository.UpdateStation(ctx, station)
 	if err != nil {

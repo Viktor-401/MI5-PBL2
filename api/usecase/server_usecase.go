@@ -66,6 +66,7 @@ func (su *ServerUsecase) PrepareStationOnServer(url string, carID int) error {
 	// Cria o payload para a requisição
 	requestBody := map[string]int{"car_id": carID}
 	payload, err := json.Marshal(requestBody)
+
 	if err != nil {
 		return fmt.Errorf("erro ao marshalling o corpo da requisição: %v", err)
 	}
@@ -117,7 +118,6 @@ func (su *ServerUsecase) ReserveStationOnServer(serverURL string, stationID int,
 }
 func (su *ServerUsecase) CommitStationOnServer(url string, carID int) error {
 	// Cria o payload para a requisição
-	fmt.Printf(" SERVER USECASE CAR ID : %d", carID)
 	requestBody := map[string]int{"car_id": carID}
 	payload, err := json.Marshal(requestBody)
 	if err != nil {
@@ -139,4 +139,3 @@ func (su *ServerUsecase) CommitStationOnServer(url string, carID int) error {
 
 	return nil
 }
-
