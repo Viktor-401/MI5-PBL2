@@ -54,7 +54,6 @@ func (sc *ServerController) GetServerByCompany(ctx *gin.Context) {
 		return
 	}
 
-	
 	// Retorna os servidor encontrado
 	ctx.JSON(http.StatusOK, server)
 }
@@ -80,6 +79,51 @@ func (sc *ServerController) GetStationsFromServer(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, stations)
+}
+
+func (sc *ServerController) PrepareStationOnServer(ctx *gin.Context) {
+	// Captura o ID da estação da URL
+	stationID, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
+		return
+	}
+
+	// Captura o ID do servidor da URL
+	serverID := ctx.Param("sid")
+	if serverID == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "server_id é obrigatório"})
+		return
+	}
+
+	// Obtém o servidor pelo ID da empresa
+	server, err := sc.serverUsecase.GetServerByCompany(serverID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Construa a URL do servidor para preparar a estação
+	url := "http://" + server.ServerIP + ":" + server.ServerPort + "/stations/" + strconv.Itoa(stationID) + "/prepare/"
+
+	// Captura o payload da requisição
+	var request struct {
+		CarID int `json:"car_id"`
+	}
+	if err := ctx.BindJSON(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Chama o caso de uso para preparar a estação no servidor remoto
+	err = sc.serverUsecase.PrepareStationOnServer(url, request.CarID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Retorna uma resposta de sucesso
+	ctx.JSON(http.StatusOK, gin.H{"message": "Estação preparada com sucesso no servidor"})
 }
 
 func (sc *ServerController) ReserveStationOnServer(ctx *gin.Context) {
@@ -116,3 +160,46 @@ func (sc *ServerController) ReserveStationOnServer(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Station reserved successfully"})
 }
+func (sc *ServerController) CommitStationOnServer(ctx *gin.Context) {
+	// Captura o ID da estação e o ID do servidor da URL
+	stationID, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "station_id inválido"})
+		return
+	}
+
+	serverID := ctx.Param("sid")
+	if serverID == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "server_id é obrigatório"})
+		return
+	}
+
+	// Obtém o servidor pelo ID da empresa
+	server, err := sc.serverUsecase.GetServerByCompany(serverID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	url := "http://" + server.ServerIP + ":" + server.ServerPort + "/stations/" + strconv.Itoa(stationID) + "/commit/"
+
+	// Captura o payload da requisição para obter o carID
+	var request struct {
+		CarID int `json:"car_id"`
+	}
+	if err := ctx.BindJSON(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Chama o caso de uso para realizar o commit da estação no servidor
+	err = sc.serverUsecase.CommitStationOnServer(url, request.CarID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Retorna uma resposta de sucesso
+	ctx.JSON(http.StatusOK, gin.H{"message": "Estação comitada com sucesso no servidor"})
+}
+

@@ -46,11 +46,11 @@ func main() {
 	server.GET("/stations/:id", stationController.GetStationByID)
 	server.POST("/stations/:id/remove", stationController.RemoveStation)
 	server.POST("/stations/:id/reserve", stationController.ReserveStation)
-	server.POST("/stations/:id/prepare", stationController.PrepareStation)
+	//server.POST("/stations/:id/prepare", stationController.PrepareStation)
 
 	// Rotas relacionadas ao 2PC
 	server.POST("/stations/:id/prepare", stationController.PrepareStation)
-	//server.POST("/stations/:id/commit", stationController.CommitStation)
+	server.POST("/stations/:id/commit", stationController.CommitStation)
 	//server.POST("/stations/:id/abort", stationController.AbortStation)
 
 	// Rotas relacionadas à comunicação entre servidores
@@ -61,6 +61,8 @@ func main() {
 	server.GET("/server/:sid/stations", serverController.GetStationsFromServer)
 
 	server.POST("/server/:sid/stations/:id/reserve/", serverController.ReserveStationOnServer)
+	server.POST("/server/:sid/stations/:id/prepare/", serverController.PrepareStationOnServer)
+	server.POST("/server/:sid/stations/:id/commit/", serverController.CommitStationOnServer)
 
 	// Rotas relacionadas às rotas
 	server.POST("/routes", routeController.CreateRoute)

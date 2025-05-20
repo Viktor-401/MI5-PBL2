@@ -18,18 +18,38 @@ func NewStationUseCase(repo repository.StationRepository) StationUsecase {
 }
 
 func (su *StationUsecase) CreateStation(station model.Station) (model.Station, error) {
-// Garante que o campo IsActive seja true ao criar a estação
-station.IsActive = true
+	// Garante que o campo IsActive seja true ao criar a estação
+	station.IsActive = true
 
-id, err := su.repository.CreateStation(station)
-if err != nil {
-	return model.Station{}, err
+	id, err := su.repository.CreateStation(station)
+	if err != nil {
+		return model.Station{}, err
+	}
+	station.StationID = id
+
+	return station, nil
 }
-station.StationID = id
+func (su *StationUsecase) CommitStation(ctx context.Context, stationID int, carID int) error {
+	// Busca a estação pelo ID
+	station, err := su.GetStationByID(ctx, stationID)
+	if err != nil {
+		return fmt.Errorf("erro ao buscar estação: %w", err)
+	}
+	fmt.Printf(" SU COMMIT STATION ")
+	// A estação foi preparada, então agora podemos chamar a função ReserveStation para efetivar a reserva
+	err = su.ReserveStation(ctx, stationID, carID)
+	if err != nil {
+		return fmt.Errorf("erro ao confirmar a reserva da estação: %w", err)
+	}
 
-return station, nil
+	// Marca a estação como "confirmada"
+	err = su.repository.UpdateStation(ctx, station)
+	if err != nil {
+		return fmt.Errorf("erro ao atualizar estação: %w", err)
+	}
+
+	return nil
 }
-
 
 func (su *StationUsecase) RemoveStation(ctx context.Context, stationID int) error {
 	err := su.repository.RemoveStation(ctx, stationID)
@@ -38,7 +58,6 @@ func (su *StationUsecase) RemoveStation(ctx context.Context, stationID int) erro
 	}
 	return nil
 }
-
 
 func (su *StationUsecase) GetAllStations(ctx context.Context) ([]model.Station, error) {
 	stations, err := su.repository.GetAllStations(ctx)
@@ -75,13 +94,11 @@ func (su *StationUsecase) PrepareStation(ctx context.Context, stationID int, car
 		return fmt.Errorf("estação com ID %d já está em uso", stationID)
 	}
 
-	// Atualiza a estação para marcar como "preparada" (reservada temporariamente)
-	station.InUseBy = carID
 	err = su.repository.UpdateStation(ctx, station)
 	if err != nil {
 		return fmt.Errorf("erro ao preparar estação: %w", err)
 	}
-
+	fmt.Printf(" STATION USECASE PREPARE STATION CAR ID %d", carID)
 	return nil
 }
 func (su *StationUsecase) ReserveStation(ctx context.Context, stationID int, carID int) error {
@@ -91,11 +108,10 @@ func (su *StationUsecase) ReserveStation(ctx context.Context, stationID int, car
 		return fmt.Errorf("erro ao buscar estação: %w", err)
 	}
 
-	// Verifica se a estação já está reservada por outro carro
-	if station.InUseBy != carID {
-		return fmt.Errorf("estação com ID %d não está reservada pelo carro %d", stationID, carID)
-	}
-
+	station.InUseBy = carID
+	fmt.Printf("STATIONID: %d\n", stationID)
+	fmt.Printf("CARID: %d\n", carID)
+	
 	// Confirma a reserva (pode incluir lógica adicional, se necessário)
 	err = su.repository.UpdateStation(ctx, station)
 	if err != nil {

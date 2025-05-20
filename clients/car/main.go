@@ -261,15 +261,17 @@ func UnmarshalListRoutes(msg paho.Message) map[string][]types.Station {
 		return nil
 	}
 
-	fmt.Println(availableStations)
 	// Lista as rotas no terminal
-	for company, stationList := range availableStations {
-		fmt.Print("Companhia: ", company, " - Estações: ")
-		for _, station := range stationList {
-			fmt.Printf("StationID: %d", station.StationID)
+	if len(availableStations) == 0 {
+		fmt.Println("Não há rotas disponiveis entre as cidaddes escolhidas")
+	} else {
+		for company, stationList := range availableStations {
+			fmt.Print("Companhia: ", company, " - Estações: \n")
+			for _, station := range stationList {
+				fmt.Printf("StationID: %d\n", station.StationID)
+			}
 		}
 	}
-
 	return availableStations
 }
 

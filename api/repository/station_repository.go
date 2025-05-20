@@ -77,7 +77,7 @@ func (sr *StationRepository) ClearStations(ctx context.Context) error {
 func (sr *StationRepository) UpdateStation(ctx context.Context, station model.Station) error {
 	filter := bson.M{"station_id": station.StationID}
 	update := bson.M{"$set": station}
-
+	fmt.Printf("SR UPDATE STATION")
 	_, err := sr.collection.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return fmt.Errorf("erro ao atualizar estação: %w", err)

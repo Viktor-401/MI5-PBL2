@@ -61,9 +61,15 @@ func main() {
 	topic := types.ResponseStationReserveTopic(station.StationData.ServerIP, fmt.Sprintf("%d", station.StationData.StationID))
 	// Inscrição no tópico de reserva, e atribui a função de callback
 	station.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
-		carInfo := &types.CarInfo{}
+		message := types.MQTT_Message{} 
+		err := json.Unmarshal(msg.Payload(), &message)
+		if err != nil {
+			fmt.Println("Error unmarshalling message:", err)
+			return
+		}
+		carInfo := types.CarInfo{}
 		// Decodifica a mensagem recebida
-		err := json.Unmarshal(msg.Payload(), carInfo)
+		err = json.Unmarshal(message.Message, &carInfo)
 		if err != nil {
 			fmt.Println("Error unmarshalling car info:", err)
 			return
@@ -71,6 +77,7 @@ func main() {
 		// Atualiza o ID do carro que reservou o posto
 		station.StationData.InUseBy = carInfo.CarId
 		fmt.Printf("Posto %d reservado pelo carro %d\n", station.StationData.StationID, carInfo.CarId)
+		
 	})
 
 	// Mantem o cliente MQTT ativo até o usuário encerrar

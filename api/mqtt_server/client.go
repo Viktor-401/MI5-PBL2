@@ -67,13 +67,11 @@ func MqttMain(serverCompany string, port string) {
 			mqttMessage := &model.MQTT_Message{}
 			if err := json.Unmarshal(msg.Payload(), mqttMessage); err != nil {
 				log.Printf("Erro ao decodificar MQTT_Message: %v", err)
-				return
 			}
 
 			routesMessage := &model.RoutesMessage{}
 			if err := json.Unmarshal(mqttMessage.Message, routesMessage); err != nil {
 				log.Printf("Erro ao decodificar RoutesMessage: %v", err)
-				return
 			}
 
 			city1, city2 := routesMessage.City1, routesMessage.City2
@@ -81,9 +79,6 @@ func MqttMain(serverCompany string, port string) {
 
 			// Realiza a requisição HTTP
 			body := SendHttpGetRequest(url)
-			if body == nil {
-				return
-			}
 
 			routesList := []model.Route{}
 			json.Unmarshal(body, &routesList)
@@ -94,9 +89,6 @@ func MqttMain(serverCompany string, port string) {
 
 					url = fmt.Sprintf("http://%s:%s/servers/%s", serverState.ServerIP, serverState.Port, company)
 					body = SendHttpGetRequest(url)
-					if body == nil {
-						return
-					}
 
 					server := &model.Server{}
 					json.Unmarshal(body, server)
@@ -105,9 +97,6 @@ func MqttMain(serverCompany string, port string) {
 
 					url = fmt.Sprintf("http://%s:%s/stations", server.ServerIP, server.ServerPort)
 					body = SendHttpGetRequest(url)
-					if body == nil {
-						return
-					}
 					stationList := []model.Station{}
 					json.Unmarshal(body, &stationList)
 					availableStations[company] = stationList
@@ -118,7 +107,6 @@ func MqttMain(serverCompany string, port string) {
 			body, err := json.Marshal(availableStations)
 			if err != nil {
 				log.Printf("Erro ao serializar availableStations: %v", err)
-				return
 			}
 
 			// Cria a mensagem MQTT de resposta
@@ -140,13 +128,11 @@ func MqttMain(serverCompany string, port string) {
 			mqttMessage := &model.MQTT_Message{}
 			if err := json.Unmarshal(msg.Payload(), mqttMessage); err != nil {
 				log.Printf("Erro ao decodificar MQTT_Message: %v", err)
-				return
 			}
 
 			routesMessage := &model.RoutesMessage{}
 			if err := json.Unmarshal(mqttMessage.Message, routesMessage); err != nil {
 				log.Printf("Erro ao decodificar RoutesMessage: %v", err)
-				return
 			}
 
 			city1, city2 := routesMessage.City1, routesMessage.City2
@@ -155,7 +141,6 @@ func MqttMain(serverCompany string, port string) {
 			// Realiza a requisição HTTP
 			body := SendHttpGetRequest(url)
 			if body == nil {
-				return
 			}
 
 			availableStations := make(map[string][]model.Station)
@@ -167,9 +152,6 @@ func MqttMain(serverCompany string, port string) {
 
 					url = fmt.Sprintf("http://%s:%s/servers/%s", serverState.ServerIP, serverState.Port, company)
 					body = SendHttpGetRequest(url)
-					if body == nil {
-						return
-					}
 
 					server := &model.Server{}
 					json.Unmarshal(body, server)
@@ -178,20 +160,15 @@ func MqttMain(serverCompany string, port string) {
 
 					url = fmt.Sprintf("http://%s:%s/stations", server.ServerIP, server.ServerPort)
 					body = SendHttpGetRequest(url)
-					if body == nil {
-						return
-					}
 					stationList := []model.Station{}
 					json.Unmarshal(body, &stationList)
 					availableStations[company] = stationList
-
 				}
 			}
 
 			body, err := json.Marshal(availableStations)
 			if err != nil {
 				log.Printf("Erro ao serializar availableStations: %v", err)
-				return
 			}
 
 			// Cria a mensagem MQTT de resposta
@@ -222,6 +199,7 @@ func MqttMain(serverCompany string, port string) {
 			json.Unmarshal(mqttMessage.Message, &selectedRouteMessage)
 
 			car := selectedRouteMessage.Car
+			fmt.Printf("SELECTEDROUTEMESSAGE>CAR %d", car.CarID)
 			selectedStations := selectedRouteMessage.StationsList
 
 			// Fase 1 do 2PC
@@ -238,7 +216,7 @@ func MqttMain(serverCompany string, port string) {
 						serverState.ServerIP, serverState.Port, station.StationID)
 				}
 
-				prepared, err := SendPrepareRequest(url, car)
+				prepared, err := SendPrepareRequest(url, car.CarID)
 				if err != nil || !prepared {
 					allPrepared = false
 					break
@@ -247,35 +225,47 @@ func MqttMain(serverCompany string, port string) {
 
 			if !allPrepared {
 				for _, station := range selectedStations {
-					SendAbortRequest(fmt.Sprintf("%d", station.StationID))
+					if serverState.ServerIP != station.ServerIP {
+					url = fmt.Sprintf("http://%s:%s/server/%s/stations/%d",
+						serverState.ServerIP, serverState.Port, station.Company, station.StationID)
+					} else {
+					url = fmt.Sprintf("http://%s:%s/stations/%d",
+						serverState.ServerIP, serverState.Port, station.StationID)
+					}
+
+					SendAbortRequest(url, car)
 				}
 				fmt.Printf("Prepare failed")
-				return
 			}
 
 			// Phase 2: Commit
 			for _, station := range selectedStations {
 				// Envia a requisição de commit para cada station
-				if err := SendCommitRequest(fmt.Sprintf("%d", station.StationID)); err != nil {
+				if serverState.ServerIP != station.ServerIP {
+					url = fmt.Sprintf("http://%s:%s/server/%s/stations/%d",
+					serverState.ServerIP, serverState.Port, station.Company, station.StationID)
+				} else {
+					url = fmt.Sprintf("http://%s:%s/stations/%d",
+					serverState.ServerIP, serverState.Port, station.StationID)
+				}
+				if err := SendCommitRequest(url, car.CarID); err != nil {
 					fmt.Printf("Commit failed for %d: %v\n", station.StationID, err)
 				}
+				topic = model.ResponseStationReserveTopic(station.ServerIP, fmt.Sprintf("%d", station.StationID))
 
-				// Envia a mensagem de reserva para o tópico do posto
-				for _, station := range selectedStations {
-					topic = model.ResponseStationReserveTopic(serverIP, fmt.Sprintf("%d", station.StationID))
+				// fmt.Printf("Requisição de reserva para a estação de id: %d no ip: %s . Pelo carro de id: %d", station.StationID, station.StationID, car.GetCarID())
 
-					carInfo := &model.CarInfo{
-						CarId: car.GetCarID(),
-					}
-					payload, _ := json.Marshal(carInfo)
-
-					mqttMessage = &model.MQTT_Message{
-						Topic:   topic,
-						Message: payload,
-					}
-
-					serverState.Mqtt.Publish(*mqttMessage)
+				carInfo := &model.CarInfo{
+					CarId: car.GetCarID(),
 				}
+				payload, _ := json.Marshal(carInfo)
+
+				mqttMessage = &model.MQTT_Message{
+					Topic:   topic,
+					Message: payload,
+				}
+
+				serverState.Mqtt.Publish(*mqttMessage)
 			}
 		})
 
@@ -306,13 +296,11 @@ func MqttMain(serverCompany string, port string) {
 		mqttMessage := &model.MQTT_Message{}
 		if err := json.Unmarshal(msg.Payload(), mqttMessage); err != nil {
 			log.Printf("Erro ao decodificar MQTT_Message: %v", err)
-			return
 		}
 
 		station := &model.Station{}
 		if err := json.Unmarshal(mqttMessage.Message, station); err != nil {
 			log.Printf("Erro ao decodificar Station: %v", err)
-			return
 		}
 
 		// Altera o campo Company
@@ -322,7 +310,6 @@ func MqttMain(serverCompany string, port string) {
 		updatedPayload, err := json.Marshal(station)
 		if err != nil {
 			log.Printf("Erro ao serializar Station: %v", err)
-			return
 		}
 
 		// Envia a requisição HTTP com o payload atualizado
@@ -339,14 +326,12 @@ func MqttMain(serverCompany string, port string) {
 			mqttMessage := &model.MQTT_Message{}
 			if err := json.Unmarshal(msg.Payload(), mqttMessage); err != nil {
 				log.Printf("Erro ao decodificar MQTT_Message: %v", err)
-				return
 			}
 
 			// Decodifica o ID da estação a partir do campo Message
 			var stationID int
 			if err := json.Unmarshal(mqttMessage.Message, &stationID); err != nil {
 				log.Printf("Erro ao decodificar StationID: %v", err)
-				return
 			}
 
 			// Define a URL do endpoint para remover a estação com o ID na URL
@@ -365,7 +350,6 @@ func MqttMain(serverCompany string, port string) {
 		mqttMessage := &model.MQTT_Message{}
 		if err := json.Unmarshal(msg.Payload(), mqttMessage); err != nil {
 			log.Printf("Erro ao decodificar MQTT_Message: %v", err)
-			return
 		}
 
 		var serverInfo struct {
@@ -375,7 +359,6 @@ func MqttMain(serverCompany string, port string) {
 		}
 		if err := json.Unmarshal(mqttMessage.Message, &serverInfo); err != nil {
 			log.Printf("Erro ao decodificar informações do servidor: %v", err)
-			return
 		}
 
 		// Registra ou atualiza o servidor no banco de dados via POST HTTP
@@ -389,7 +372,6 @@ func MqttMain(serverCompany string, port string) {
 		jsonPayload, err := json.Marshal(payload)
 		if err != nil {
 			log.Printf("Erro ao serializar payload: %v", err)
-			return
 		}
 
 		SendHttpPostRequest(url, jsonPayload)
@@ -402,7 +384,6 @@ func MqttMain(serverCompany string, port string) {
 		responseJson, err := json.Marshal(responsePayload)
 		if err != nil {
 			log.Printf("Erro ao serializar payload de resposta: %v", err)
-			return
 		}
 		responseMessage := model.MQTT_Message{
 			Topic:   model.ResponseServerBirthTopic(serverInfo.ServerIP),
@@ -411,7 +392,6 @@ func MqttMain(serverCompany string, port string) {
 
 		if err := serverState.Mqtt.Publish(responseMessage); err != nil {
 			log.Printf("Erro ao publicar mensagem de resposta: %v", err)
-			return
 		}
 	})
 
@@ -427,7 +407,6 @@ func MqttMain(serverCompany string, port string) {
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
 		log.Printf("Erro ao serializar payload: %v", err)
-		return
 	}
 
 	// Publica a mensagem no tópico
@@ -437,7 +416,6 @@ func MqttMain(serverCompany string, port string) {
 	})
 	if err != nil {
 		log.Printf("Erro ao publicar mensagem de nascimento do servidor: %v", err)
-		return
 	}
 
 	topic = model.ResponseServerBirthTopic(serverState.ServerIP)
@@ -447,7 +425,6 @@ func MqttMain(serverCompany string, port string) {
 		mqttMessage := &model.MQTT_Message{}
 		if err := json.Unmarshal(msg.Payload(), mqttMessage); err != nil {
 			log.Printf("Erro ao decodificar MQTT_Message: %v", err)
-			return
 		}
 
 		var serverInfo struct {
@@ -457,7 +434,6 @@ func MqttMain(serverCompany string, port string) {
 		}
 		if err := json.Unmarshal(mqttMessage.Message, &serverInfo); err != nil {
 			log.Printf("Erro ao decodificar informações do servidor: %v", err)
-			return
 		}
 
 		// Registra ou atualiza o servidor no banco de dados via POST HTTP
@@ -471,7 +447,6 @@ func MqttMain(serverCompany string, port string) {
 		jsonPayload, err := json.Marshal(payload)
 		if err != nil {
 			log.Printf("Erro ao serializar payload: %v", err)
-			return
 		}
 
 		SendHttpPostRequest(url, jsonPayload)
@@ -564,30 +539,55 @@ func SendHttpPostRequest(url string, payload []byte) {
 	}
 }
 
-func SendPrepareRequest(url string, payload interface{}) (bool, error) {
+func SendPrepareRequest(url string, carID int) (bool, error) {
+    // Cria o payload com apenas o CarID
+    payload := struct {
+        CarID int `json:"CarID"`
+    }{
+        CarID: carID,
+    }
+
+    jsonPayload, _ := json.Marshal(payload)
+    fmt.Println("Payload enviado:", string(jsonPayload))  // Imprime o payload enviado
+
+    resp, err := http.Post(url+"/prepare", "application/json", bytes.NewBuffer(jsonPayload))
+    if err != nil {
+        return false, err
+    }
+    defer resp.Body.Close()
+    return resp.StatusCode == http.StatusOK, nil
+}
+
+
+func SendCommitRequest(url string, carID int) error {
+    // Cria o payload com apenas o CarID
+    payload := struct {
+        CarID int `json:"car_id"`
+    }{
+        CarID: carID,
+    }
+
+    jsonPayload, _ := json.Marshal(payload)
+    fmt.Println("Payload enviado:", string(jsonPayload))  // Imprime o payload enviado
+
+    // Envia a requisição HTTP POST para o servidor
+    resp, err := http.Post(url+"/commit", "application/json", bytes.NewBuffer(jsonPayload))
+    if err != nil {
+        return err
+    }
+    defer resp.Body.Close()
+
+    // Verifica se a resposta foi bem-sucedida
+    if resp.StatusCode != http.StatusOK {
+        return fmt.Errorf("commit failed for %s", url)
+    }
+
+    return nil
+}
+
+func SendAbortRequest(url string,  payload interface{}) error {
 	jsonPayload, _ := json.Marshal(payload)
-	resp, err := http.Post(url+"/prepare", "application/json", bytes.NewBuffer(jsonPayload))
-	if err != nil {
-		return false, err
-	}
-	defer resp.Body.Close()
-	return resp.StatusCode == http.StatusOK, nil
-}
-
-func SendCommitRequest(url string) error {
-	resp, err := http.Post(url+"/commit", "application/json", nil)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("commit failed for %s", url)
-	}
-	return nil
-}
-
-func SendAbortRequest(url string) error {
-	resp, err := http.Post(url+"/abort", "application/json", nil)
+	resp, err := http.Post(url+"/abort", "application/json", bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return err
 	}
