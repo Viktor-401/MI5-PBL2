@@ -67,6 +67,8 @@ func main() {
 			return
 		}
 
+		car.ReservedStations = selectedStations
+
 		message, err := carState.SelectRouteMessage(carState.Car, selectedStations)
 		if err != nil {
 			fmt.Println("Error creating reserve route message:", err)
@@ -80,20 +82,34 @@ func main() {
 		waitChan <- true
 	})
 
+	topic = types.ResponseFinishRouteTopic(serverIP, carState.Car.GetCarID())
+	carState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
+		// Função de callback para quando uma mensagem de resposta de finalização de rota é recebida
+		fmt.Println("Resposta de finalização de rota recebida!")
+		mqttMessage := &types.MQTT_Message{}
+		err := json.Unmarshal(msg.Payload(), mqttMessage)
+		if err != nil {
+			fmt.Println("Erro ao decodificar MQTT_Message:", err)
+			return
+		}
+		fmt.Println("Mensagem:", string(mqttMessage.Message))
+		waitChan <- true
+	})
+
 	exit := false
 	for !exit {
 		action := 0
-        for {
-            fmt.Println(` Escolha uma ação:
+		for {
+			fmt.Println(` Escolha uma ação:
         1- Consultar Rotas
         2- Reservar Postos
-        `)
-            fmt.Scanln(&action)
-            if action == 1 || action == 2 {
-                break
-            }
-            fmt.Println("Ação inválida. Tente novamente.")
-        }
+        3- Liberar Rota`)
+			fmt.Scanln(&action)
+			if action == 1 || action == 2 || action == 3 {
+				break
+			}
+			fmt.Println("Ação inválida. Tente novamente.")
+		}
 		if action == 1 {
 			// Consultar rotas
 			city1, city2 := CityInput()
@@ -123,6 +139,24 @@ func main() {
 				fmt.Println("Error publishing reserve route message:", err)
 				return
 			}
+		} else if action == 3 {
+			if len(car.ReservedStations) == 0 {
+				fmt.Println("Nenhuma rota reservada para liberar.")
+				continue
+			}
+			stations := car.ReservedStations // Estações a liberar
+			finishMsg, err := carState.FinishRouteMessage(stations)
+			if err != nil {
+				fmt.Println("Erro ao criar mensagem de finalização de rota:", err)
+				return
+			}
+			err = carState.Mqtt.Publish(finishMsg)
+			if err != nil {
+				fmt.Println("Erro ao publicar mensagem de finalização de rota:", err)
+				return
+			}
+			fmt.Println("Mensagem de finalização de rota publicada!")
+
 		} else {
 			fmt.Println("Ação inválida. Tente novamente.")
 		}
@@ -221,6 +255,29 @@ func (s *CarState) SelectRouteMessage(car types.Car, selectedStations []types.St
 	}
 
 	payload, err := json.Marshal(message)
+	if err != nil {
+		return types.MQTT_Message{}, err
+	}
+
+	return types.MQTT_Message{
+		Topic:   topic,
+		Message: payload,
+	}, nil
+}
+
+// Retorna a mensagem de finalização de rota para liberar as estações reservadas
+func (s *CarState) FinishRouteMessage(stations []types.Station) (types.MQTT_Message, error) {
+	topic := types.FinishRouteTopic(s.ServerIP, s.Car.GetCarID())
+
+	payloadStruct := struct {
+		Car          types.Car       `json:"car"`
+		StationsList []types.Station `json:"route"`
+	}{
+		Car:          s.Car,
+		StationsList: stations,
+	}
+
+	payload, err := json.Marshal(payloadStruct)
 	if err != nil {
 		return types.MQTT_Message{}, err
 	}

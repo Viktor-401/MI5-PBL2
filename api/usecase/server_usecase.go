@@ -66,13 +66,18 @@ func (su *ServerUsecase) PrepareStationOnServer(url string, carID int) error {
 	// Cria o payload para a requisição
 	requestBody := map[string]int{"car_id": carID}
 	payload, err := json.Marshal(requestBody)
-
 	if err != nil {
 		return fmt.Errorf("erro ao marshalling o corpo da requisição: %v", err)
 	}
 
-	// Faz a requisição HTTP POST para o servidor remoto
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(payload))
+	// Faz a requisição HTTP PUT para o servidor remoto
+	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(payload))
+	if err != nil {
+		return fmt.Errorf("erro ao criar requisição PUT: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("erro ao enviar requisição para o servidor: %v", err)
 	}
@@ -124,8 +129,14 @@ func (su *ServerUsecase) CommitStationOnServer(url string, carID int) error {
 		return fmt.Errorf("erro ao marshalling o corpo da requisição: %v", err)
 	}
 
-	// Faz a requisição HTTP POST
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(payload))
+	// Faz a requisição HTTP PUT
+	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(payload))
+	if err != nil {
+		return fmt.Errorf("erro ao criar requisição PUT: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("erro ao enviar requisição para commit estação: %v", err)
 	}
@@ -135,6 +146,36 @@ func (su *ServerUsecase) CommitStationOnServer(url string, carID int) error {
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body) // Lê o corpo da resposta para depuração
 		return fmt.Errorf("falha ao commit estação, status: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+func (su *ServerUsecase) ReleaseStationOnServer(url string, carID int) error {
+	// Cria o payload para a requisição
+	requestBody := map[string]int{"car_id": carID}
+	payload, err := json.Marshal(requestBody)
+	if err != nil {
+		return fmt.Errorf("erro ao marshalling o corpo da requisição: %v", err)
+	}
+
+	// Faz a requisição HTTP PUT para o servidor remoto
+	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(payload))
+	if err != nil {
+		return fmt.Errorf("erro ao criar requisição PUT: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("erro ao enviar requisição para liberar estação: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Verifica o status da resposta
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("falha ao liberar estação, status: %d, body: %s", resp.StatusCode, string(body))
 	}
 
 	return nil

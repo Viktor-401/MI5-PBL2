@@ -12,6 +12,7 @@ const (
 	Select
 	Birth
 	Death
+	Finish
 )
 
 var TopicNames = map[Topics]string{
@@ -20,6 +21,7 @@ var TopicNames = map[Topics]string{
 	Select:  "select",
 	Birth:   "birth",
 	Death:   "death",
+	Finish:  "finish",
 }
 
 func (t Topics) String() string {
@@ -59,7 +61,7 @@ type RoutesMessage struct {
 }
 
 type SelectRouteMessage struct {
-	Car   Car   `json:"car"`
+	Car          Car       `json:"car"`
 	StationsList []Station `json:"route"`
 }
 
@@ -127,4 +129,12 @@ func CarSelectRouteTopic(serverIP string, CarID int) string {
 func ResponseStationReserveTopic(serverIP string, stationID string) string {
 	// Reserve a station in serverIP with stationID
 	return "response" + Reserve.String() + StationClientType.String() + serverIP + stationID
+}
+
+func FinishRouteTopic(serverIP string, carID int) string {
+	return Finish.String() + CarClientType.String() + serverIP + fmt.Sprintf("%d", carID)
+}
+
+func ResponseFinishRouteTopic(serverIP string, carID int) string {
+	return "response" + Finish.String() + CarClientType.String() + serverIP + fmt.Sprintf("%d", carID)
 }

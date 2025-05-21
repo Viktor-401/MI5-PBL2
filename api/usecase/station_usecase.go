@@ -113,3 +113,15 @@ func (su *StationUsecase) ReserveStation(ctx context.Context, stationID int, car
 
 	return nil
 }
+
+func (su *StationUsecase) ReleaseStation(ctx context.Context, stationID int) error {
+	station, err := su.GetStationByID(ctx, stationID)
+	if err != nil {
+		return fmt.Errorf("erro ao buscar estação %d: %w", stationID, err)
+	}
+	station.InUseBy = -1 // Libera a estação
+	if err := su.repository.UpdateStation(ctx, station); err != nil {
+		return fmt.Errorf("erro ao liberar estação %d: %w", stationID, err)
+	}
+	return nil
+}

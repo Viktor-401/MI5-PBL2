@@ -7,6 +7,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type StationRepository struct {
@@ -19,15 +20,29 @@ func NewStationRepository(db *mongo.Database) StationRepository {
 		collection: db.Collection("stations"),
 	}
 }
+
 func (sr *StationRepository) CreateStation(station model.Station) (int, error) {
-	// Insere a estação na coleção
-	_, err := sr.collection.InsertOne(context.TODO(), station)
-	if err != nil {
-		return 0, fmt.Errorf("erro ao criar estação: %w", err)
-	}
-	// Retorna o ID da estação
-	return station.StationID, nil
+    filter := bson.M{"station_id": station.StationID}
+    update := bson.M{
+        "$set": station, // Atualiza todos os campos, inclusive is_active
+    }
+    opts := options.Update().SetUpsert(true)
+
+    _, err := sr.collection.UpdateOne(context.TODO(), filter, update, opts)
+    if err != nil {
+        return 0, fmt.Errorf("erro ao criar/atualizar estação: %w", err)
+    }
+    return station.StationID, nil
 }
+// func (sr *StationRepository) CreateStation(station model.Station) (int, error) {
+// 	// Insere a estação na coleção
+// 	_, err := sr.collection.InsertOne(context.TODO(), station)
+// 	if err != nil {
+// 		return 0, fmt.Errorf("erro ao criar estação: %w", err)
+// 	}
+// 	// Retorna o ID da estação
+// 	return station.StationID, nil
+// }
 
 func (sr *StationRepository) RemoveStation(ctx context.Context, stationID int) error {
     // Define o filtro para encontrar a estação pelo ID

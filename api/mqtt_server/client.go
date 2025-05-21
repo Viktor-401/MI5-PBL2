@@ -269,7 +269,59 @@ func MqttMain(serverCompany string, port string) {
 				}
 			}
 		})
+		topic = model.FinishRouteTopic(serverState.ServerIP, car.CarID)
+		serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
+			log.Printf("Mensagem recebida no tópico de finalização de rota: %s", msg.Topic())
 
+			var mqttMsg model.MQTT_Message
+			if err := json.Unmarshal(msg.Payload(), &mqttMsg); err != nil {
+				log.Printf("Erro ao decodificar MQTT_Message: %v", err)
+				return
+			}
+
+			var finishMsg model.FinishRouteMessage
+			if err := json.Unmarshal(mqttMsg.Message, &finishMsg); err != nil {
+				log.Printf("Erro ao decodificar FinishRouteMessage: %v", err)
+				return
+			}
+
+			// Libera cada estação informada, enviando também o car_id no payload
+			for _, station := range finishMsg.StationsList {
+				var url string
+				if serverState.ServerIP != station.ServerIP {
+					url = fmt.Sprintf("http://%s:%s/server/%s/stations/%d/release",
+						serverState.ServerIP, serverState.Port, station.Company, station.StationID)
+				} else {
+					url = fmt.Sprintf("http://%s:%s/stations/%d/release",
+						serverState.ServerIP, serverState.Port, station.StationID)
+				}
+				payload := struct {
+					CarID int `json:"car_id"`
+				}{CarID: finishMsg.Car.CarID}
+				payloadBytes, _ := json.Marshal(payload)
+				_, err := SendHttpPutRequest(url, payloadBytes)
+				if err != nil {
+					log.Printf("Erro ao liberar estação %d: %v", station.StationID, err)
+				} else {
+					log.Printf("Estação %d liberada com sucesso!", station.StationID)
+				}
+			}
+
+			// Envia mensagem de resposta para o carro
+			responsePayload := struct {
+				Message string `json:"message"`
+			}{
+				Message: "Estações liberadas com sucesso",
+			}
+			responseBytes, _ := json.Marshal(responsePayload)
+			responseMsg := &model.MQTT_Message{
+				Topic:   model.ResponseFinishRouteTopic(serverState.ServerIP, finishMsg.Car.CarID),
+				Message: responseBytes,
+			}
+			if err := serverState.Mqtt.Publish(*responseMsg); err != nil {
+				log.Printf("Erro ao publicar mensagem de resposta de finalização de rota: %v", err)
+			}
+		})
 		topic = model.CarDeathTopic(serverState.ServerIP)
 		serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
 			// Funcao de callback
@@ -338,8 +390,8 @@ func MqttMain(serverCompany string, port string) {
 			// Define a URL do endpoint para remover a estação com o ID na URL
 			url := fmt.Sprintf("http://%s:%s/stations/%d/remove", serverState.ServerIP, serverState.Port, stationID)
 
-			// Envia a requisição HTTP POST
-			SendHttpPostRequest(url, nil) // Nenhum payload é necessário, pois o ID está na URL
+			// Envia a requisição HTTP PUT
+			SendHttpPutRequest(url, nil) // Nenhum payload é necessário, pois o ID está na URL
 		})
 
 	})
@@ -523,6 +575,30 @@ func SendHttpGetRequest(url string) []byte {
 	return body
 }
 
+func SendHttpPutRequest(url string, payload []byte) ([]byte, error) {
+	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(payload))
+	if err != nil {
+		return nil, fmt.Errorf("erro ao criar requisição PUT para %s: %v", url, err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("erro na requisição PUT para %s: %v", url, err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao ler corpo da resposta: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return body, fmt.Errorf("erro: status %d, resposta: %s", resp.StatusCode, string(body))
+	}
+
+	return body, nil
+}
 func SendHttpPostRequest(url string, payload []byte) {
 	// Realiza a requisição HTTP
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(payload))
@@ -551,7 +627,13 @@ func SendPrepareRequest(url string, carID int) (bool, error) {
 	jsonPayload, _ := json.Marshal(payload)
 	fmt.Println("Prepare Payload enviado:", string(jsonPayload)) // Imprime o payload enviado
 
-	resp, err := http.Post(url+"/prepare", "application/json", bytes.NewBuffer(jsonPayload))
+	req, err := http.NewRequest(http.MethodPut, url+"/prepare", bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return false, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return false, err
 	}
@@ -570,14 +652,18 @@ func SendCommitRequest(url string, carID int) error {
 	jsonPayload, _ := json.Marshal(payload)
 	fmt.Println("Commit Payload enviado:", string(jsonPayload)) // Imprime o payload enviado
 
-	// Envia a requisição HTTP POST para o servidor
-	resp, err := http.Post(url+"/commit", "application/json", bytes.NewBuffer(jsonPayload))
+	req, err := http.NewRequest(http.MethodPut, url+"/commit", bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	// Verifica se a resposta foi bem-sucedida
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("commit failed for %s", url)
 	}
@@ -587,7 +673,13 @@ func SendCommitRequest(url string, carID int) error {
 
 func SendAbortRequest(url string, payload interface{}) error {
 	jsonPayload, _ := json.Marshal(payload)
-	resp, err := http.Post(url+"/abort", "application/json", bytes.NewBuffer(jsonPayload))
+	req, err := http.NewRequest(http.MethodPut, url+"/abort", bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}

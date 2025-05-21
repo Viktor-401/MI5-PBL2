@@ -134,7 +134,6 @@ func (sc *StationController) CommitStation(ctx *gin.Context) {
 		return
 	}
 
-
 	// Verifica se o CarID foi corretamente deserializado
 	if request.CarID == 0 {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "car_id inválido"})
@@ -177,4 +176,18 @@ func (sc *StationController) ReserveStation(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Estação reservada com sucesso"})
+}
+
+func (sc *StationController) ReleaseStation(ctx *gin.Context) {
+	stationID, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
+		return
+	}
+
+	if err := sc.stationUsecase.ReleaseStation(ctx, stationID); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, gin.H{"message": "Estação liberada com sucesso"})
 }

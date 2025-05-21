@@ -204,3 +204,46 @@ func (sc *ServerController) CommitStationOnServer(ctx *gin.Context) {
 	// Retorna uma resposta de sucesso
 	ctx.JSON(http.StatusOK, gin.H{"message": "Estação comitada com sucesso no servidor"})
 }
+
+func (sc *ServerController) ReleaseStationOnServer(ctx *gin.Context) {
+	// Captura o ID da estação e o ID do servidor da URL
+	stationID, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "station_id inválido"})
+		return
+	}
+
+	serverID := ctx.Param("sid")
+	if serverID == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "server_id é obrigatório"})
+		return
+	}
+
+	// Obtém o servidor pelo ID da empresa
+	server, err := sc.serverUsecase.GetServerByCompany(serverID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	url := "http://" + server.ServerIP + ":" + server.ServerPort + "/stations/" + strconv.Itoa(stationID) + "/release"
+
+	// Captura o payload da requisição para obter o carID
+	var request struct {
+		CarID int `json:"car_id"`
+	}
+	if err := ctx.BindJSON(&request); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Chama o usecase para liberar a estação no servidor remoto
+	err = sc.serverUsecase.ReleaseStationOnServer(url, request.CarID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Retorna uma resposta de sucesso
+	ctx.JSON(http.StatusOK, gin.H{"message": "Estação liberada com sucesso no servidor"})
+}
