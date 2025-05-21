@@ -63,3 +63,179 @@ A nota final será composta por três critérios de avaliação:
 1. Desempenho individual (25%)
 2. Documentação (25%)
 3. Produto Final (código incluso) (50%)
+
+
+
+# Arquitetura da Solução
+
+O sistema foi desenvolvido com uma **arquitetura distribuída baseada em microserviços**, composta pelos seguintes componentes principais:
+
+## 🧩 Componentes Principais
+
+### 📡 Servidor (API REST + MQTT)
+Responsável por:
+- Gerenciar as estações de recarga, rotas e reservas.
+- Cada servidor representa uma empresa distinta.
+- Expõe endpoints **REST** para comunicação entre servidores.
+- Integra-se ao **broker MQTT** para comunicação com os clientes (carros e estações).
+
+### 🚗 Clientes (Carros e Estações)
+Simulam:
+- **Usuários (carros)** e **pontos de recarga (estações)**.
+- Comunicam-se com o servidor via **MQTT**, publicando e recebendo mensagens em tópicos específicos.
+- Operações suportadas:
+  - Consulta de rotas
+  - Reserva de estações
+  - Liberação de estações
+
+### 🔀 Broker MQTT
+- Atua como **middleware para troca de mensagens assíncronas** entre clientes e servidores.
+- Permite **desacoplamento** entre componentes e promove **escalabilidade**.
+
+### 🗃️ Banco de Dados
+- Responsável pela **persistência de informações**:
+  - Estações
+  - Rotas
+  - Reservas
+  - Identificação dos servidores
+
+---
+
+## 🏗️ Classificação da Arquitetura
+
+A solução é classificada como uma:
+
+### 👉 Arquitetura de Microserviços Distribuídos
+- **Orientada a eventos** (via MQTT)
+- **Requisições síncronas** (via REST)
+
+Cada componente possui:
+- **Responsabilidades bem definidas**
+- **Comunicação padronizada**
+
+### ✅ Benefícios:
+- Escalabilidade
+- Modularidade
+- Facilidade de manutenção
+
+
+## 📡 Protocolo de Comunicação
+
+A solução utiliza **dois protocolos principais** para a comunicação entre os componentes do sistema:
+
+---
+
+### 1. 🛰️ MQTT (Message Queue Telemetry Transport)
+
+**Comunicação entre:**  
+➡️ Clientes (**carros/estações**) e **servidores**  
+**Tipo:** Comunicação **assíncrona**, **orientada a eventos**
+
+#### 📌 Tópicos e Payloads
+
+**Exemplos de tópicos:**
+- `car/{serverIP}/{carID}/consult` — Consulta de rotas
+- `car/{serverIP}/{carID}/reserve` — Reserva de rota
+- `car/{serverIP}/{carID}/finishroute` — Finalização de rota
+- `station/{serverIP}/{stationID}/birth` — Nascimento de estação
+
+**Formato dos payloads:**  
+- JSON (ex: `SelectRouteMessage`, `FinishRouteMessage`, `CarInfo`, etc.)
+
+#### 🔁 Fluxo típico:
+1. O carro publica uma **mensagem de reserva** em um tópico MQTT.
+2. O servidor processa a requisição.
+3. O servidor responde em um **tópico específico de resposta** para aquele carro.
+4. Mensagens de **finalização de rota** seguem o mesmo padrão.
+
+---
+
+### 2. 🌐 API REST
+
+**Comunicação entre:**  
+➡️ **Servidores**  
+**Tipo:** Comunicação **síncrona**, baseada em **requisições HTTP**
+
+#### 📌 Principais endpoints:
+
+- `PUT /server/:sid/stations/:id/prepare`  
+  ➤ Prepara uma estação remota para reserva
+
+- `PUT /server/:sid/stations/:id/commit`  
+  ➤ Efetiva a reserva remota
+
+- `PUT /server/:sid/stations/:id/release`  
+  ➤ Libera uma estação remota
+
+- `POST /servers/register`  
+  ➤ Registra um novo servidor
+
+#### 📎 Parâmetros:
+- IDs de estação, IDs de servidor, IDs de carro
+- Payloads em **JSON** (ex: `{ "car_id": 123 }`)
+
+#### 📤 Retornos:
+- Status HTTP (`200 OK`, `400 Bad Request`, etc.)
+- Mensagens JSON indicando **sucesso ou erro**
+
+---
+
+### 🧭 Resumo do Fluxo de Reserva de Rota
+
+1. 🚗 O carro publica uma **mensagem de reserva via MQTT**.
+2. 🧠 O servidor consulta e reserva **estações locais e remotas** via **API REST**.
+3. 🔁 O servidor executa o protocolo **2PC (Prepare/Commit)** entre servidores via REST.
+4. 📩 O servidor responde ao carro via MQTT com o resultado da operação.
+
+## 🚦 Roteamento
+
+O sistema implementa um **roteamento distribuído** para calcular e apresentar ao usuário todas as rotas possíveis entre origem e destino, considerando os pontos de recarga disponíveis em servidores de todas as companhias.
+
+### 🧮 Como funciona o cálculo de rotas?
+
+- **Consulta de rotas:**  
+  O cliente (carro) envia uma mensagem de consulta via MQTT para o servidor, informando as cidades de origem e destino.
+- **Busca distribuída:**  
+  O servidor consulta seu banco de dados por todas as rotas possíveis entre as cidades informadas, levando em conta as estações disponíveis (ativas) em sua própria empresa e, se necessário, consulta outros servidores para incluir estações de outras companhias.
+- **Resposta ao usuário:**  
+  O servidor retorna ao cliente todas as rotas possíveis, cada uma composta por uma sequência de estações de recarga (de diferentes empresas, se necessário), garantindo que o usuário possa planejar a viagem completa sem risco de ficar sem energia.
+
+### 📋 Exemplo de fluxo
+
+1. 🚗 O carro consulta rotas de João Pessoa para Feira de Santana.
+2. 🧠 O servidor retorna múltiplas opções de rotas, cada uma com diferentes pontos de recarga (ex: João Pessoa → Maceió [Empresa A], Maceió → Sergipe [Empresa B], Sergipe → Feira de Santana [Empresa C]).
+3. 👤 O usuário escolhe a rota desejada e inicia o processo de reserva.
+
+### ✅ O sistema garante:
+
+- **Cálculo distribuído:** As rotas podem envolver estações de várias empresas, consultando diferentes servidores.
+- **Exibição de todas as possibilidades:** O usuário visualiza todas as rotas possíveis, considerando a disponibilidade dos pontos de recarga em todos os servidores participantes.
+- **Reserva atômica:** A reserva dos pontos de recarga ao longo da rota é feita de forma coordenada, garantindo que o usuário só inicie a viagem se todos os pontos estiverem disponíveis.
+
+## 🤝 Concorrência Distribuída
+
+Para evitar que o mesmo ponto de recarga seja reservado por clientes distintos no mesmo horário, o sistema emprega o protocolo de commit em duas fases (2PC):
+
+- **Fase de preparação:** Cada estação envolvida na rota recebe uma requisição de "prepare" e só aceita se estiver realmente disponível.
+- **Fase de commit:** Se todas as estações confirmarem a preparação, a reserva é efetivada em todas. Se alguma não puder reservar, todas as reservas são abortadas.
+- **Garantia:** Nenhum ponto é reservado simultaneamente para clientes diferentes, mesmo em ambiente distribuído e com múltiplos servidores/empresas.
+
+Esse controle é feito de forma distribuída, coordenando as reservas entre servidores via API REST e garantindo a consistência do sistema.
+
+## 🔒 Confiabilidade da Solução
+
+O sistema foi projetado para garantir a confiabilidade e a consistência das reservas mesmo diante de falhas de comunicação ou desconexão temporária de servidores das companhias.
+
+- **Protocolo 2PC (Two-Phase Commit):**  
+  Utiliza o protocolo de commit em duas fases para garantir que uma reserva só será efetivada se todos os servidores participantes confirmarem a operação. Caso algum servidor fique indisponível durante o processo, a reserva é automaticamente abortada para todos, evitando inconsistências.
+
+- **Persistência:**  
+  O estado das reservas e estações é salvo no banco de dados, permitindo que servidores retomem o processamento corretamente após uma falha ou reconexão.
+
+- **Recuperação de falhas:**  
+  Se um servidor desconectar durante uma reserva, o sistema aborta a operação e libera os recursos envolvidos. Ao reconectar, o servidor pode consultar o banco de dados para retomar seu estado.
+
+- **Garantia de concorrência distribuída:**  
+  Mesmo em cenários de falha, o sistema impede que dois clientes reservem o mesmo ponto de recarga no mesmo horário, mantendo a integridade e a atomicidade das operações distribuídas.
+
+Dessa forma, o sistema continua garantindo a concorrência distribuída e a finalização correta das reservas, mesmo com desconexão e reconexão dos servidores das companhias. 
