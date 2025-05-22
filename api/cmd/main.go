@@ -47,7 +47,7 @@ func main() {
 	server.PUT("/stations/:id/remove", stationController.RemoveStation)
 	server.PUT("/stations/:id/release", stationController.ReleaseStation)
 
-	// Rotas relacionadas às rotas predefinidas
+	// EndPoints relacionadas às rotas predefinidas
 	server.POST("/routes", routeController.CreateRoute)
 	server.GET("/routes", routeController.GetRoutes)
 
@@ -65,7 +65,6 @@ func main() {
 	server.PUT("/server/:sid/stations/:id/commit", serverController.CommitStationOnServer)
 	server.PUT("/server/:sid/stations/:id/release", serverController.ReleaseStationOnServer)
 
-	// Inicia o servidor MQTT
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080" // Fallback para a porta 8080 se a variável de ambiente não estiver configurada

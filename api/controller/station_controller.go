@@ -19,6 +19,7 @@ func NewStationController(usecase usecase.StationUsecase) StationController {
 	}
 }
 
+// Handler para criar uma nova estação
 func (sc *StationController) CreateStation(ctx *gin.Context) {
 
 	station := model.Station{}
@@ -29,6 +30,7 @@ func (sc *StationController) CreateStation(ctx *gin.Context) {
 		return
 	}
 
+	// Chama o caso de uso para criar a estação
 	station, err = sc.stationUsecase.CreateStation(station)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -38,6 +40,7 @@ func (sc *StationController) CreateStation(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, station)
 }
 
+// Handler para desativar uma estação
 func (sc *StationController) RemoveStation(ctx *gin.Context) {
 	// Captura o ID da estação da URL
 	stationID, err := strconv.Atoi(ctx.Param("id"))
@@ -56,6 +59,7 @@ func (sc *StationController) RemoveStation(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Estação desativada com sucesso"})
 }
 
+// Handler para obter todas as estações de um servidor
 func (sc *StationController) GetAllStations(ctx *gin.Context) {
 	stations, err := sc.stationUsecase.GetAllStations(ctx)
 	if err != nil {
@@ -66,6 +70,7 @@ func (sc *StationController) GetAllStations(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, stations)
 }
 
+// Handler para obter uma estação específica pelo ID
 func (sc *StationController) GetStationByID(ctx *gin.Context) {
 	stationID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -81,6 +86,8 @@ func (sc *StationController) GetStationByID(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, station)
 }
+
+// Handler para preparar uma estação (2PC/prepare)
 func (sc *StationController) PrepareStation(ctx *gin.Context) {
 	// Captura o ID da estação da URL
 	stationID, err := strconv.Atoi(ctx.Param("id"))
@@ -115,6 +122,7 @@ func (sc *StationController) PrepareStation(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Estação preparada com sucesso"})
 }
 
+// Handler para confirmar uma estação (2PC/commit)
 func (sc *StationController) CommitStation(ctx *gin.Context) {
 	// Captura o ID da estação da URL
 	stationID, err := strconv.Atoi(ctx.Param("id"))
@@ -150,34 +158,7 @@ func (sc *StationController) CommitStation(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Estação confirmada e reservada com sucesso"})
 }
 
-func (sc *StationController) ReserveStation(ctx *gin.Context) {
-	// Captura o ID da estação da URL
-	stationID, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "ID inválido"})
-		return
-	}
-
-	// Captura o ID do carro do corpo da requisição
-	var request struct {
-		Car model.Car `json:"car_id"`
-	}
-
-	if err := ctx.BindJSON(&request); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Chama o caso de uso para reservar a estação
-	err = sc.stationUsecase.ReserveStation(ctx, stationID, request.Car.CarID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"message": "Estação reservada com sucesso"})
-}
-
+// Handler para liberar uma estação apos o fim da viagem
 func (sc *StationController) ReleaseStation(ctx *gin.Context) {
 	stationID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {

@@ -2,47 +2,12 @@ package database
 
 import (
 	"api/model"
-	"api/repository"
 	"context"
-	"fmt"
 	"log"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
 )
-
-// SeedData limpa e insere dados iniciais em cars e stations
-func SeedData(stationRepo repository.StationRepository) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	// Dados iniciais para estações
-	stations := []model.Station{
-		{StationID: 1, InUseBy: -1, Company: "A"},
-		{StationID: 5, InUseBy: -1, Company: "A"},
-		{StationID: 11, InUseBy: -1, Company: "B"},
-		{StationID: 2, InUseBy: -1, Company: "B"},
-		{StationID: 3, InUseBy: -1, Company: "C"},
-	}
-
-	// Limpa a coleção de estações
-	err := stationRepo.ClearStations(ctx)
-	if err != nil {
-		fmt.Printf("Erro ao limpar a coleção de estações: %v\n", err)
-		return
-	}
-
-	// Insere as estações
-	for _, station := range stations {
-		_, err := stationRepo.CreateStation(station)
-		if err != nil {
-			fmt.Printf("Erro ao inserir estação %d: %v\n", station.StationID, err)
-			return
-		}
-	}
-
-	fmt.Println("✅ Banco populado com sucesso")
-}
 
 func SeedRoutes(db *mongo.Database) {
 	routesCollection := db.Collection("routes")

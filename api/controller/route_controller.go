@@ -19,7 +19,7 @@ func NewRouteController(usecase usecase.RouteUsecase) RouteController {
 	}
 }
 
-// Endpoint para criar uma nova rota
+// Handler para criar uma nova rota
 func (rc *RouteController) CreateRoute(ctx *gin.Context) {
 	var route model.Route
 
@@ -40,7 +40,7 @@ func (rc *RouteController) CreateRoute(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, route)
 }
 
-// Endpoint para buscar todas as rotas com base na cidade de origem e destino final
+// Handler para buscar todas as rotas com base na cidade de origem e destino final
 func (rc *RouteController) GetRoutes(ctx *gin.Context) {
 	startCity := ctx.Query("start_city") // Obtém a cidade de origem da query string
 	endCity := ctx.Query("end_city")     // Obtém a cidade de destino da query string

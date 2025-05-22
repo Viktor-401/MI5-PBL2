@@ -19,6 +19,7 @@ func NewServerController(usecase usecase.ServerUsecase) ServerController {
 	}
 }
 
+// Handler para registrar o servidor
 func (sc *ServerController) RegisterServer(ctx *gin.Context) {
 	var request struct {
 		Company    string `json:"company"`
@@ -31,6 +32,7 @@ func (sc *ServerController) RegisterServer(ctx *gin.Context) {
 		return
 	}
 
+	//Chama o usecase para registrar ou atualizar o servidor
 	err := sc.serverUsecase.RegisterOrUpdateServer(request.Company, request.ServerIP, request.ServerPort)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -40,6 +42,7 @@ func (sc *ServerController) RegisterServer(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Servidor registrado com sucesso"})
 }
 
+// Handler para buscar um servidor por ID (companhia)
 func (sc *ServerController) GetServerByCompany(ctx *gin.Context) {
 	// Obtém o parâmetro "id" da URL
 	companyID := ctx.Param("id")
@@ -59,6 +62,7 @@ func (sc *ServerController) GetServerByCompany(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, server)
 }
 
+// Handler para buscar estações disponíveis em outro servidor
 func (sc *ServerController) GetStationsFromServer(ctx *gin.Context) {
 	serverID := ctx.Param("sid")
 	if serverID == "" {
@@ -71,6 +75,7 @@ func (sc *ServerController) GetStationsFromServer(ctx *gin.Context) {
 		return
 	}
 
+	// Constroi a URL do servidor para obter as estações
 	url := "http://" + server.ServerIP + ":" + server.ServerPort + "/stations"
 
 	stations, err := sc.serverUsecase.GetStationsFromServer(url)
@@ -82,6 +87,7 @@ func (sc *ServerController) GetStationsFromServer(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, stations)
 }
 
+// Handler para preparar uma estação no servidor remoto (2PC/prepare)
 func (sc *ServerController) PrepareStationOnServer(ctx *gin.Context) {
 	// Captura o ID da estação da URL
 	stationID, err := strconv.Atoi(ctx.Param("id"))
@@ -128,40 +134,7 @@ func (sc *ServerController) PrepareStationOnServer(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Estação preparada com sucesso no servidor"})
 }
 
-func (sc *ServerController) ReserveStationOnServer(ctx *gin.Context) {
-	// Captura os parâmetros da query string
-	serverURL := ctx.Query("server_url")
-	stationID := ctx.Query("station_id")
-	carID := ctx.Query("car_id")
-
-	// Valida os parâmetros
-	if serverURL == "" || stationID == "" || carID == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "server_url, station_id, and car_id are required"})
-		return
-	}
-
-	// Converte stationID e carID para inteiros
-	stationIDInt, err := strconv.Atoi(stationID)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "station_id must be an integer"})
-		return
-	}
-
-	carIDInt, err := strconv.Atoi(carID)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "car_id must be an integer"})
-		return
-	}
-
-	// Chama o usecase para realizar a reserva
-	err = sc.serverUsecase.ReserveStationOnServer(serverURL, stationIDInt, carIDInt)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"message": "Station reserved successfully"})
-}
+// Handler para confirmar a reserva de uma estação no servidor remoto (2PC/commit)
 func (sc *ServerController) CommitStationOnServer(ctx *gin.Context) {
 	// Captura o ID da estação e o ID do servidor da URL
 	stationID, err := strconv.Atoi(ctx.Param("id"))
@@ -205,6 +178,7 @@ func (sc *ServerController) CommitStationOnServer(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Estação comitada com sucesso no servidor"})
 }
 
+// Handler para liberar uma estação no servidor remoto no fim da viagem
 func (sc *ServerController) ReleaseStationOnServer(ctx *gin.Context) {
 	// Captura o ID da estação e o ID do servidor da URL
 	stationID, err := strconv.Atoi(ctx.Param("id"))

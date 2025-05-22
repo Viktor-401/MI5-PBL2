@@ -15,12 +15,14 @@ type ServerUsecase struct {
 	serverRepo repository.ServerRepository
 }
 
+// ServerUsecase é responsável por interagir com o repositório de servidores
 func NewServerUsecase(serverRepo repository.ServerRepository) ServerUsecase {
 	return ServerUsecase{
 		serverRepo: serverRepo,
 	}
 }
 
+// RegisterOrUpdateServer registra ou atualiza um servidor no banco de dados
 func (su *ServerUsecase) RegisterOrUpdateServer(company string, serverIP string, port string) error {
 	if company == "" || serverIP == "" || port == "" {
 		return fmt.Errorf("company and serverIP are required")
@@ -34,6 +36,8 @@ func (su *ServerUsecase) RegisterOrUpdateServer(company string, serverIP string,
 
 	return nil
 }
+
+// GetServerByCompany busca um servidor registrado pela companhia
 func (su *ServerUsecase) GetServerByCompany(company string) (model.Server, error) {
 	return su.serverRepo.GetServerByCompany(context.Background(), company)
 }
@@ -62,6 +66,8 @@ func (su *ServerUsecase) GetStationsFromServer(url string) ([]model.Station, err
 
 	return stations, nil
 }
+
+// Prepara uma estação em outro servidor (2PC/prepare)
 func (su *ServerUsecase) PrepareStationOnServer(url string, carID int) error {
 	// Cria o payload para a requisição
 	requestBody := map[string]int{"car_id": carID}
@@ -91,36 +97,7 @@ func (su *ServerUsecase) PrepareStationOnServer(url string, carID int) error {
 	return nil
 }
 
-// Reserva uma estação em outro servidor
-func (su *ServerUsecase) ReserveStationOnServer(serverURL string, stationID int, carID int) error {
-	// Cria o payload da requisição
-	payload := map[string]interface{}{
-		"station_id": stationID,
-		"car_id":     carID,
-	}
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("erro ao serializar payload: %w", err)
-	}
-
-	// Constrói a URL do endpoint remoto
-	url := fmt.Sprintf("%s/stations/reserve", serverURL)
-
-	// Faz a requisição HTTP POST
-	resp, err := http.Post(url, "application/json", bytes.NewReader(payloadBytes))
-	if err != nil {
-		return fmt.Errorf("erro ao fazer requisição para reservar estação: %w", err)
-	}
-	defer resp.Body.Close()
-
-	// Verifica o status da resposta
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body) // Lê o corpo da resposta para depuração
-		return fmt.Errorf("falha ao reservar estação, status: %d, body: %s", resp.StatusCode, string(body))
-	}
-
-	return nil
-}
+// Reserva uma estação em outro servidor usando Commit do 2PC
 func (su *ServerUsecase) CommitStationOnServer(url string, carID int) error {
 	// Cria o payload para a requisição
 	requestBody := map[string]int{"car_id": carID}
@@ -151,6 +128,7 @@ func (su *ServerUsecase) CommitStationOnServer(url string, carID int) error {
 	return nil
 }
 
+// Libera uma estação em outro servidor
 func (su *ServerUsecase) ReleaseStationOnServer(url string, carID int) error {
 	// Cria o payload para a requisição
 	requestBody := map[string]int{"car_id": carID}

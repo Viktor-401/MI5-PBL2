@@ -15,6 +15,7 @@ type ServerRepository struct {
 	collection *mongo.Collection
 }
 
+// ServerRepository é responsável por interagir com a coleção de servidores no MongoDB
 func NewServerRepository(db *mongo.Database) ServerRepository {
 	return ServerRepository{
 		collection: db.Collection("servers"),
@@ -40,6 +41,7 @@ func (sr *ServerRepository) RegisterOrUpdateServer(ctx context.Context, company 
 	return nil
 }
 
+// Retorna o servidor registrado pela companhia do banco de dados
 func (sr *ServerRepository) GetServerByCompany(ctx context.Context, company string) (model.Server, error) {
 	// Define o filtro para buscar o servidor pela companhia
 	filter := bson.M{"company": company}

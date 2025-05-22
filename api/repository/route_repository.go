@@ -13,6 +13,7 @@ type RouteRepository struct {
 	collection *mongo.Collection
 }
 
+// RouteRepository é responsável por interagir com a coleção de rotas no MongoDB
 func NewRouteRepository(db *mongo.Database) *RouteRepository {
 	return &RouteRepository{
 		collection: db.Collection("routes"),
