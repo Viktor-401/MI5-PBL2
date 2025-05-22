@@ -59,14 +59,6 @@ func (c *Car) GetBatteryDrainRate() int {
 	return c.BatteryDrainRate
 }
 
-// func (c *Car) GetReservedRoute() Route {
-// 	return c.ReservedRoute
-// }
-
-// func (c *Car) SetReservedRoute(route Route) {
-// 	c.ReservedRoute = route
-// }
-
 func (c *Car) SetBatteryLevel(batteryLevel int) {
 	c.BatteryLevel = batteryLevel
 }
