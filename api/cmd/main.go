@@ -40,35 +40,32 @@ func main() {
 	serverController := controller.NewServerController(serverUsecase)
 
 	server := gin.Default()
-	// Rotas relacionadas às estações
+	// Rotas relacionadas às estações locais
 	server.POST("/stations", stationController.CreateStation)
 	server.GET("/stations", stationController.GetAllStations)
 	server.GET("/stations/:id", stationController.GetStationByID)
 	server.PUT("/stations/:id/remove", stationController.RemoveStation)
-	server.PUT("/stations/:id/reserve", stationController.ReserveStation)
 	server.PUT("/stations/:id/release", stationController.ReleaseStation)
-	// Rotas relacionadas ao 2PC
+
+	// Rotas relacionadas às rotas predefinidas
+	server.POST("/routes", routeController.CreateRoute)
+	server.GET("/routes", routeController.GetRoutes)
+
+	// Rotas relacionadas ao 2PC no servidor local
 	server.PUT("/stations/:id/prepare", stationController.PrepareStation)
 	server.PUT("/stations/:id/commit", stationController.CommitStation)
-	//server.POST("/stations/:id/abort", stationController.AbortStation)
 
-	// Rotas relacionadas à comunicação entre servidores
+	// Rotas relacionadas à comunicação entre servidores (database dos IPs dos servidores)
 	server.POST("/servers/register", serverController.RegisterServer)
 	server.GET("/servers/:id", serverController.GetServerByCompany)
 
 	// Rotas relacionadas ao servidor remoto
 	server.GET("/server/:sid/stations", serverController.GetStationsFromServer)
-	server.PUT("/server/:sid/stations/:id/reserve", serverController.ReserveStationOnServer)
 	server.PUT("/server/:sid/stations/:id/prepare", serverController.PrepareStationOnServer)
 	server.PUT("/server/:sid/stations/:id/commit", serverController.CommitStationOnServer)
 	server.PUT("/server/:sid/stations/:id/release", serverController.ReleaseStationOnServer)
 
-	// Rotas relacionadas às rotas
-	server.POST("/routes", routeController.CreateRoute)
-	server.GET("/routes", routeController.GetRoutes)
-
 	// Inicia o servidor MQTT
-
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080" // Fallback para a porta 8080 se a variável de ambiente não estiver configurada

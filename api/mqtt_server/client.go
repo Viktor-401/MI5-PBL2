@@ -271,7 +271,6 @@ func MqttMain(serverCompany string, port string) {
 		})
 		topic = model.FinishRouteTopic(serverState.ServerIP, car.CarID)
 		serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
-			log.Printf("Mensagem recebida no tópico de finalização de rota: %s", msg.Topic())
 
 			var mqttMsg model.MQTT_Message
 			if err := json.Unmarshal(msg.Payload(), &mqttMsg); err != nil {
@@ -373,7 +372,6 @@ func MqttMain(serverCompany string, port string) {
 		topic = model.StationDeathTopic(serverState.ServerIP)
 		serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
 			// Função de callback para processar mensagens de morte de postos
-			log.Printf("Mensagem recebida no tópico %s: %s", msg.Topic(), string(msg.Payload()))
 
 			// Decodifica a mensagem MQTT
 			mqttMessage := &model.MQTT_Message{}
@@ -399,7 +397,6 @@ func MqttMain(serverCompany string, port string) {
 	topic = model.ServerBirthTopic(serverState.ServerIP)
 	serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
 		// Função de callback para processar mensagens de nascimento de servidores
-		log.Printf("Mensagem recebida no tópico %s: %s", msg.Topic(), string(msg.Payload()))
 		mqttMessage := &model.MQTT_Message{}
 		if err := json.Unmarshal(msg.Payload(), mqttMessage); err != nil {
 			log.Printf("Erro ao decodificar MQTT_Message: %v", err)
@@ -474,7 +471,6 @@ func MqttMain(serverCompany string, port string) {
 	topic = model.ResponseServerBirthTopic(serverState.ServerIP)
 	serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
 		// Função de callback para processar mensagens de nascimento de servidores
-		log.Printf("Mensagem recebida no tópico %s: %s", msg.Topic(), string(msg.Payload()))
 		mqttMessage := &model.MQTT_Message{}
 		if err := json.Unmarshal(msg.Payload(), mqttMessage); err != nil {
 			log.Printf("Erro ao decodificar MQTT_Message: %v", err)

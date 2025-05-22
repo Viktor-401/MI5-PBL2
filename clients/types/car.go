@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"math/rand"
+	"strconv"
 )
 
 type Car struct {
@@ -13,10 +14,24 @@ type Car struct {
 }
 
 // Functions
+// Cria um novo carro com caracteristicas aleatorias
 func GetNewRandomCar() Car {
-	fmt.Println("Insira o ID do carro:")
 	carID := 0
-	fmt.Scanln(&carID)
+	for {
+
+		fmt.Println("Insira o ID do carro (número inteiro):")
+		var input string
+		fmt.Scanln(&input)
+
+		id, err := strconv.Atoi(input)
+		if err == nil {
+			carID = id
+			break
+		} else {
+			fmt.Println("Valor inválido! Por favor, insira um número inteiro.")
+		}
+	}
+
 	// Criar um novo carro com as coordenadas geradas
 	return Car{
 		CarID:            carID,              // Exemplo: ID do carro entre 0 e 999

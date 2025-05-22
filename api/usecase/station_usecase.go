@@ -85,6 +85,10 @@ func (su *StationUsecase) PrepareStation(ctx context.Context, stationID int, car
 		return fmt.Errorf("erro ao buscar estação: %w", err)
 	}
 
+	if !station.IsActive {
+		return fmt.Errorf("estação com ID %d não está ativa", stationID)
+	}
+
 	// Verifica se a estação já está em uso
 	if station.InUseBy != -1 {
 		return fmt.Errorf("estação com ID %d já está em uso", stationID)
