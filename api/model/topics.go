@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
+// Tópicos que identificam a ação a ser realizada
 type Topics int
 
 const (
@@ -28,6 +29,7 @@ func (t Topics) String() string {
 	return TopicNames[t]
 }
 
+// Tipos de clientes que se conectam no servidor MQTT
 type MqttClientTypes int
 
 const (
@@ -46,29 +48,36 @@ func (m MqttClientTypes) String() string {
 	return MqttClientTypeNames[m]
 }
 
+// Mensagem enviada pelos clientes MQTT
 type MQTT_Message struct {
 	Topic   string `json:"topic"`
 	Message []byte `json:"message"`
 }
 
+// Mensagem com as informações do carro que deseja reservar uma estação
 type CarInfo struct {
 	CarId int `json:"car_id"`
 }
 
+// Mensagem com as cidades de origem e destino
 type RoutesMessage struct {
 	City1 string `json:"city1"`
 	City2 string `json:"city2"`
 }
 
+// Mensagem com uma lista de estações selecionadas pelo cliente carro
 type SelectRouteMessage struct {
 	Car          Car       `json:"car"`
 	StationsList []Station `json:"route"`
 }
+
+// Mensagem com uma lista das estações que devem ser liberadas
 type FinishRouteMessage struct {
 	Car          Car       `json:"car"`
 	StationsList []Station `json:"route"`
 }
 
+// Mensagem com uma lista de rotas entre duas cidades
 type RoutesList struct {
 	Routes []Route `json:"routes"`
 }

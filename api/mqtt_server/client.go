@@ -49,7 +49,6 @@ func MqttMain(serverCompany string, port string) {
 	// Inscrição no tópico de nascimento do carro
 	topic := model.CarBirthTopic(serverState.ServerIP)
 	serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
-		// Funcao de callback
 		// adiciona o carro na database e se inscreve no tópico de consulta e reserva de rotas
 
 		mqttMessage := &model.MQTT_Message{}
@@ -63,47 +62,52 @@ func MqttMain(serverCompany string, port string) {
 		// Inscrição no tópico de consulta de rotas
 		topic = model.CarConsultTopic(serverState.ServerIP, car.GetCarID())
 		serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
-			// Função de callback
+			// Deserializa a mensagem MQTT
 			mqttMessage := &model.MQTT_Message{}
 			if err := json.Unmarshal(msg.Payload(), mqttMessage); err != nil {
 				log.Printf("Erro ao decodificar MQTT_Message: %v", err)
 			}
-
+			// Deserializa o contéudo da mensagemMQTT
 			routesMessage := &model.RoutesMessage{}
 			if err := json.Unmarshal(mqttMessage.Message, routesMessage); err != nil {
 				log.Printf("Erro ao decodificar RoutesMessage: %v", err)
 			}
 
+			// Extrai as cidades de origem e destino
 			city1, city2 := routesMessage.City1, routesMessage.City2
+			// Monta a URL para a requisição HTTP das rotas entre as cidades
 			url := fmt.Sprintf("http://%s:%s/routes?start_city=%s&end_city=%s", serverState.ServerIP, serverState.Port, city1, city2)
-
-			// Realiza a requisição HTTP
 			body := SendHttpGetRequest(url)
 
+			// recebe a lista de rotas
 			routesList := []model.Route{}
 			json.Unmarshal(body, &routesList)
 
+			// Mapa para armazenar as estações disponíveis de cada empresa
 			availableStations := make(map[string][]model.Station)
+			// para cada rota na lista de rotas
 			for _, route := range routesList {
+				// para cada empresa na rota
 				for _, company := range route.Waypoints {
-
+					// Monta a URL para obter as informações do servidor da empresa
 					url = fmt.Sprintf("http://%s:%s/servers/%s", serverState.ServerIP, serverState.Port, company)
 					body = SendHttpGetRequest(url)
 
+					// Recebe as informações do servidor
 					server := &model.Server{}
 					json.Unmarshal(body, server)
 
-					// fmt.Printf("%s -> %s: ",route.StartCity, route.EndCity, body)
-
+					// Monta a URL para obter as estações disponíveis do servidor
 					url = fmt.Sprintf("http://%s:%s/stations", server.ServerIP, server.ServerPort)
 					body = SendHttpGetRequest(url)
+					// Recebe a lista de estações
 					stationList := []model.Station{}
 					json.Unmarshal(body, &stationList)
+					// Adiciona a lista de estações ao mapa de estações disponíveis
 					availableStations[company] = stationList
-
 				}
 			}
-
+			// Serializa o mapa de estações disponíveis para JSON
 			body, err := json.Marshal(availableStations)
 			if err != nil {
 				log.Printf("Erro ao serializar availableStations: %v", err)
@@ -124,7 +128,7 @@ func MqttMain(serverCompany string, port string) {
 		// Inscrição no tópico de reserva de rotas
 		topic = model.CarReserveTopic(serverState.ServerIP, car.GetCarID())
 		serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
-			// Função de callback
+			// O procedimento é o mesmo do tópico de consulta de rotas, esse tópico serve para marcar um fluxo diferente
 			mqttMessage := &model.MQTT_Message{}
 			if err := json.Unmarshal(msg.Payload(), mqttMessage); err != nil {
 				log.Printf("Erro ao decodificar MQTT_Message: %v", err)
@@ -155,8 +159,6 @@ func MqttMain(serverCompany string, port string) {
 
 					server := &model.Server{}
 					json.Unmarshal(body, server)
-
-					// fmt.Printf("%s -> %s: ",route.StartCity, route.EndCity, body)
 
 					url = fmt.Sprintf("http://%s:%s/stations", server.ServerIP, server.ServerPort)
 					body = SendHttpGetRequest(url)
@@ -198,6 +200,7 @@ func MqttMain(serverCompany string, port string) {
 			selectedRouteMessage := model.SelectRouteMessage{}
 			json.Unmarshal(mqttMessage.Message, &selectedRouteMessage)
 
+			// Extrai as informações do carro e da rota selecionada da mensagem
 			car := selectedRouteMessage.Car
 			selectedStations := selectedRouteMessage.StationsList
 
@@ -206,24 +209,28 @@ func MqttMain(serverCompany string, port string) {
 			url := ""
 			allPrepared := true
 			for _, station := range selectedStations {
-				// url + station = fmt.Sprintf("http://%s:%s/stations/%s", serverState.ServerIP, serverState.Port, stationID)
+				// Caso o posto seja de outro servidor, a requisição deve ser enviada para o servidor
 				if serverState.ServerIP != station.ServerIP {
 					url = fmt.Sprintf("http://%s:%s/server/%s/stations/%d",
 						serverState.ServerIP, serverState.Port, station.Company, station.StationID)
+					// Caso contrário, a requisição deve ser enviada para o próprio servidor
 				} else {
 					url = fmt.Sprintf("http://%s:%s/stations/%d",
 						serverState.ServerIP, serverState.Port, station.StationID)
 				}
-
+				// Envia a requisição de preparação
 				prepared, err := SendPrepareRequest(url, car.CarID)
+				// Verifica se a requisição foi bem sucedida
 				if err != nil || !prepared {
 					allPrepared = false
 					break
 				}
 			}
 
+			// Se alguma estação não estiver preparada, envia a requisição de abortar
 			if !allPrepared {
 				for _, station := range selectedStations {
+					// caso o posto seja de outro servidor
 					if serverState.ServerIP != station.ServerIP {
 						url = fmt.Sprintf("http://%s:%s/server/%s/stations/%d",
 							serverState.ServerIP, serverState.Port, station.Company, station.StationID)
@@ -239,8 +246,9 @@ func MqttMain(serverCompany string, port string) {
 
 			// Phase 2: Commit
 			if allPrepared {
+				// Envia a requisição de commit para cada estação
 				for _, station := range selectedStations {
-					// Envia a requisição de commit para cada station
+					// caso o posto seja de outro servidor
 					if serverState.ServerIP != station.ServerIP {
 						url = fmt.Sprintf("http://%s:%s/server/%s/stations/%d",
 							serverState.ServerIP, serverState.Port, station.Company, station.StationID)
@@ -248,12 +256,12 @@ func MqttMain(serverCompany string, port string) {
 						url = fmt.Sprintf("http://%s:%s/stations/%d",
 							serverState.ServerIP, serverState.Port, station.StationID)
 					}
+					// Envia a requisição de commit
 					if err := SendCommitRequest(url, car.CarID); err != nil {
 						fmt.Printf("Commit failed for %d: %v\n", station.StationID, err)
 					}
+					// Envia resposta para o carro
 					topic = model.ResponseStationReserveTopic(station.ServerIP, fmt.Sprintf("%d", station.StationID))
-
-					// fmt.Printf("Requisição de reserva para a estação de id: %d no ip: %s . Pelo carro de id: %d", station.StationID, station.StationID, car.GetCarID())
 
 					carInfo := &model.CarInfo{
 						CarId: car.GetCarID(),
@@ -287,6 +295,7 @@ func MqttMain(serverCompany string, port string) {
 			// Libera cada estação informada, enviando também o car_id no payload
 			for _, station := range finishMsg.StationsList {
 				var url string
+				// Caso o posto seja de outro servidor
 				if serverState.ServerIP != station.ServerIP {
 					url = fmt.Sprintf("http://%s:%s/server/%s/stations/%d/release",
 						serverState.ServerIP, serverState.Port, station.Company, station.StationID)
@@ -294,10 +303,13 @@ func MqttMain(serverCompany string, port string) {
 					url = fmt.Sprintf("http://%s:%s/stations/%d/release",
 						serverState.ServerIP, serverState.Port, station.StationID)
 				}
+				// Serializa o car ID
 				payload := struct {
 					CarID int `json:"car_id"`
 				}{CarID: finishMsg.Car.CarID}
 				payloadBytes, _ := json.Marshal(payload)
+
+				// Envia a requisição HTTP para liberar a estação
 				_, err := SendHttpPutRequest(url, payloadBytes)
 				if err != nil {
 					log.Printf("Erro ao liberar estação %d: %v", station.StationID, err)
@@ -321,23 +333,21 @@ func MqttMain(serverCompany string, port string) {
 				log.Printf("Erro ao publicar mensagem de resposta de finalização de rota: %v", err)
 			}
 		})
+		// Inscrição no tópico de morte do carro
 		topic = model.CarDeathTopic(serverState.ServerIP)
 		serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
-			// Funcao de callback
-			// Retira o carro da database
 			mqttMessage := &model.MQTT_Message{}
 			json.Unmarshal(msg.Payload(), mqttMessage)
 
 			car := &model.Car{}
 			json.Unmarshal(mqttMessage.Message, car)
 
+			// Desinscreve dos tópicos relacionados ao carro
 			serverState.Mqtt.Client.Unsubscribe(
 				model.CarConsultTopic(serverState.ServerIP, car.GetCarID()),
 				model.CarReserveTopic(serverState.ServerIP, car.GetCarID()),
 				model.CarSelectRouteTopic(serverState.ServerIP, car.GetCarID()),
 			)
-
-			// TODO retirar o carro da database
 		})
 	})
 
@@ -394,6 +404,7 @@ func MqttMain(serverCompany string, port string) {
 
 	})
 
+	// Inscrição no tópico de nascimento do servidor, utiliazado para registrar novos servidores
 	topic = model.ServerBirthTopic(serverState.ServerIP)
 	serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
 		// Função de callback para processar mensagens de nascimento de servidores
@@ -426,6 +437,8 @@ func MqttMain(serverCompany string, port string) {
 
 		SendHttpPostRequest(url, jsonPayload)
 
+		// Envia uma mensagem de resposta para que o servidor que enviou a mensagem de nascimento
+		// atualize sua data base com os servidores já cadastrados
 		responsePayload := map[string]string{
 			"company":     serverState.ServerCompany,
 			"server_ip":   serverState.ServerIP,
@@ -445,6 +458,8 @@ func MqttMain(serverCompany string, port string) {
 		}
 	})
 
+	// Envia uma mensagem de nascimento do servidor para o broker
+	// Alertando os outros servidores que esse servidor está ativo
 	topic = model.ServerBirthTopic(serverState.ServerIP)
 	// Cria o payload da mensagem
 	payload := map[string]string{
@@ -452,13 +467,11 @@ func MqttMain(serverCompany string, port string) {
 		"server_ip":   serverState.ServerIP,
 		"server_port": serverState.Port,
 	}
-
 	// Serializa o payload para JSON
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
 		log.Printf("Erro ao serializar payload: %v", err)
 	}
-
 	// Publica a mensagem no tópico
 	err = serverState.Mqtt.Publish(model.MQTT_Message{
 		Topic:   topic,
@@ -468,6 +481,8 @@ func MqttMain(serverCompany string, port string) {
 		log.Printf("Erro ao publicar mensagem de nascimento do servidor: %v", err)
 	}
 
+	// Inscrição no tópico de resposta de nascimento do servidor
+	// Atualiza a base de dados com os servidores já cadastrados
 	topic = model.ResponseServerBirthTopic(serverState.ServerIP)
 	serverState.Mqtt.Subscribe(topic, func(client paho.Client, msg paho.Message) {
 		// Função de callback para processar mensagens de nascimento de servidores
@@ -499,11 +514,10 @@ func MqttMain(serverCompany string, port string) {
 		}
 
 		SendHttpPostRequest(url, jsonPayload)
-
 	})
-
 }
 
+// Função para obter o IP local da máquina
 func GetLocalIP() (string, error) {
 	// Obtém todas as interfaces de rede do sistema
 	interfaces, err := net.Interfaces()
@@ -546,6 +560,7 @@ func GetLocalIP() (string, error) {
 	return "", fmt.Errorf("nenhum endereço IP válido encontrado")
 }
 
+// Envia uma requisição HTTP GET e retorna o corpo da resposta
 func SendHttpGetRequest(url string) []byte {
 	// Realiza a requisição HTTP
 	resp, err := http.Get(url)
@@ -571,6 +586,8 @@ func SendHttpGetRequest(url string) []byte {
 	return body
 }
 
+// Envia uma requisição HTTP PUT e retorna o corpo da resposta
+// Se o status da resposta não for 200 OK, retorna um erro
 func SendHttpPutRequest(url string, payload []byte) ([]byte, error) {
 	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(payload))
 	if err != nil {
@@ -595,6 +612,8 @@ func SendHttpPutRequest(url string, payload []byte) ([]byte, error) {
 
 	return body, nil
 }
+
+// Envia uma requisição HTTP POST e não espera resposta
 func SendHttpPostRequest(url string, payload []byte) {
 	// Realiza a requisição HTTP
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(payload))
@@ -612,6 +631,7 @@ func SendHttpPostRequest(url string, payload []byte) {
 	}
 }
 
+// 2PC: Envia uma requisição HTTP PUT para preparar, commit ou abortar
 func SendPrepareRequest(url string, carID int) (bool, error) {
 	// Cria o payload com apenas o CarID
 	payload := struct {
@@ -637,6 +657,7 @@ func SendPrepareRequest(url string, carID int) (bool, error) {
 	return resp.StatusCode == http.StatusOK, nil
 }
 
+// 2PC: Envia uma requisição HTTP PUT para confirmar o commit
 func SendCommitRequest(url string, carID int) error {
 	// Cria o payload com apenas o CarID
 	payload := struct {
@@ -667,6 +688,7 @@ func SendCommitRequest(url string, carID int) error {
 	return nil
 }
 
+// 2PC: Envia uma requisição HTTP PUT para abortar
 func SendAbortRequest(url string, payload interface{}) error {
 	jsonPayload, _ := json.Marshal(payload)
 	req, err := http.NewRequest(http.MethodPut, url+"/abort", bytes.NewBuffer(jsonPayload))

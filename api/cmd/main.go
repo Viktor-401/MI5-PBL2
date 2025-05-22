@@ -74,7 +74,9 @@ func main() {
 	fmt.Println("Insira a empresa do Servidor:")
 	fmt.Scanln(&company)
 
+	// Gorutina para o servidor MQTT
 	go mqtt_server.MqttMain(company, port)
+	// Inicia o Servidor HTTP
 	server.Run(fmt.Sprintf(":%s", port))
 
 }
